@@ -53,6 +53,7 @@ pub fn audio_event_system(
 
         if window_size.x > 0.0 && window_size.y > 0.0 {
             if let Ok(audio_event) = audio_receiver.receiver.lock().unwrap().try_recv() {
+                //println!("{:#?}", audio_event);
                 let mut fft_planner = FftPlanner::new();
                 let fft = fft_planner.plan_fft_forward(2048);
 
