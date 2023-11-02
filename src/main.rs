@@ -278,7 +278,7 @@ fn audio_capture_startup_system(
     mut commands: Commands,
 ) {
     // Retrieve the receiver from the `stream_input` function.
-    let audio_receiver = AudioReceiver{receiver: Arc::new(Mutex::new(stream_input(DeviceType::Output(), 1024)))};
+    let audio_receiver = AudioReceiver{receiver: Arc::new(Mutex::new(stream_input(DeviceType::Output(), 2048)))};
 
     // Insert the receiver into Bevy's resource system for later access.
     commands.insert_resource(audio_receiver);
@@ -324,7 +324,7 @@ fn audio_event_system(
         if window_size.x > 0.0 && window_size.y > 0.0 {
             if let Ok(audio_event) = audio_receiver.receiver.lock().unwrap().try_recv() {
                 let mut fft_planner = FftPlanner::new();
-                let fft = fft_planner.plan_fft_forward(1024);
+                let fft = fft_planner.plan_fft_forward(2048);
 
                 // Convert audio samples to complex numbers for FFT
                 // Assuming audio_event.0 is a Vec<Vec4>, where Vec4 is a type with four f32 fields
@@ -335,6 +335,8 @@ fn audio_event_system(
                     // map each f32 to a Complex<f32>
                     .map(|&sample| Complex::new(sample, 0.0))
                     .collect();
+                // Apply a window function to the audio samples before FFT
+                apply_hann_window(&mut input);
 
                 // Ensure that the input buffer isn't empty and has a length that's a power of two
                 if !input.is_empty() && input.len().is_power_of_two() {
@@ -367,7 +369,13 @@ fn audio_event_system(
         }
     }
 }
-
+fn apply_hann_window(input: &mut Vec<Complex<f32>>) {
+    let len = input.len();
+    for (i, sample) in input.iter_mut().enumerate() {
+        let window_value = 0.5 * (1.0 - Float::cos(2.0 * std::f32::consts::PI * i as f32 / (len - 1) as f32));
+        *sample *= Complex::new(window_value, 0.0);
+    }
+}
 use rustfft::num_traits::Float; // Import the Float trait
 fn bucketize_fft_to_ranges(input: &[Complex<f32>], num_buckets: usize, sample_rate: usize) -> Vec<f32> {
     let mut buckets = vec![0f32; num_buckets];
