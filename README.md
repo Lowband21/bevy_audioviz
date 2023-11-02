@@ -4,7 +4,7 @@
 
 This project is a real-time audio visualizer implemented in Rust using the Bevy game engine and the CPAL library for audio processing. It captures audio data, performs a Fourier transform on it using the `rustfft` library to analyze frequencies, and then visualizes this data on a 2D canvas in a Bevy application.
 
-![screenshot](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/screenshot.png)
+![screenshot](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/assets/screenshot.png)
 
 ## Features
 
