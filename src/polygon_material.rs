@@ -6,16 +6,16 @@ use bevy::sprite::Material2d;
 use crate::ARRAY_UNIFORM_SIZE;
 
 #[derive(Resource)]
-pub struct CircleEntity(pub Option<Entity>);
-impl Default for CircleEntity {
+pub struct PolygonEntity(pub Option<Entity>);
+impl Default for PolygonEntity {
     fn default() -> Self {
-        CircleEntity(None)
+        PolygonEntity(None)
     }
 }
 
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath)]
-#[uuid = "fcf0ff0e-23f6-41f9-98a2-896a7407c235"]
-pub struct CircleMaterial {
+#[uuid = "00adadef-a1e7-4601-9169-87493ce3fa5c"]
+pub struct PolygonMaterial {
     #[uniform(0)]
     pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
     #[uniform(1)]
@@ -23,18 +23,18 @@ pub struct CircleMaterial {
     #[uniform(2)]
     pub viewport_height: f32,
 }
-impl Material2d for CircleMaterial {
+impl Material2d for PolygonMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/circle_fragment.wgsl".into()
+        "shaders/polygon_fragment.wgsl".into()
     }
 }
 //a Mandelbrot material with the given uniforms.
-pub fn prepare_circle_material(
-    materials: &mut ResMut<Assets<CircleMaterial>>,
+pub fn prepare_polygon_material(
+    materials: &mut ResMut<Assets<PolygonMaterial>>,
     width: f32,
     height: f32,
-) -> Handle<CircleMaterial> {
-    let material = CircleMaterial {
+) -> Handle<PolygonMaterial> {
+    let material = PolygonMaterial {
         normalized_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         viewport_width: width,
         viewport_height: height,

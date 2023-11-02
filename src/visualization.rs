@@ -6,6 +6,7 @@ use crate::audio_capture::AudioThreadFlag;
 use crate::audio_capture::{stream_input, DeviceType};
 use crate::bar_material::*;
 use crate::circle_material::*;
+use crate::polygon_material::*;
 use crate::AudioReceiver;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
@@ -17,6 +18,7 @@ use std::thread::JoinHandle;
 pub enum VisualizationType {
     Bar,
     Circle,
+    Polygon,
 }
 
 impl Default for VisualizationType {
@@ -52,7 +54,8 @@ pub fn visualization_toggle_system(
 
         *visualization_type = match *visualization_type {
             VisualizationType::Bar => VisualizationType::Circle,
-            VisualizationType::Circle => VisualizationType::Bar,
+            VisualizationType::Circle => VisualizationType::Polygon,
+            VisualizationType::Polygon => VisualizationType::Bar,
         };
 
         // Restart the audio thread with a new run flag
@@ -74,8 +77,10 @@ pub fn spawn_visualization(
     mut meshes: ResMut<Assets<Mesh>>, // For meshes
     mut audio_material: ResMut<Assets<AudioMaterial>>,
     mut circle_material: ResMut<Assets<CircleMaterial>>,
+    mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     mut audio_entity: ResMut<AudioEntity>,
     mut circle_entity: ResMut<CircleEntity>,
+    mut polygon_entity: ResMut<PolygonEntity>,
     visualization_type: Res<VisualizationType>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
 ) {
@@ -91,15 +96,19 @@ pub fn spawn_visualization(
         });
         let audio_mesh: Mesh2dHandle = Mesh2dHandle(meshes.add(mesh.clone()));
 
+        // Remove the old visualizer entity if it exists
+        if let Some(entity) = audio_entity.0.take() {
+            commands.entity(entity).despawn();
+        }
+        if let Some(entity) = circle_entity.0.take() {
+            commands.entity(entity).despawn();
+        }
+        if let Some(entity) = polygon_entity.0.take() {
+            commands.entity(entity).despawn();
+        }
+
         match *visualization_type {
             VisualizationType::Bar => {
-                // Remove the old visualizer entity if it exists
-                if let Some(entity) = audio_entity.0.take() {
-                    commands.entity(entity).despawn();
-                }
-                if let Some(entity) = circle_entity.0.take() {
-                    commands.entity(entity).despawn();
-                }
                 // Spawn Mandelbrot entity
                 let bar_material_handle =
                     prepare_audio_material(&mut audio_material, window_size.x, window_size.y);
@@ -115,13 +124,6 @@ pub fn spawn_visualization(
                 );
             }
             VisualizationType::Circle => {
-                // Remove the old visualizer entity if it exists
-                if let Some(entity) = audio_entity.0.take() {
-                    commands.entity(entity).despawn();
-                }
-                if let Some(entity) = circle_entity.0.take() {
-                    commands.entity(entity).despawn();
-                }
                 // Spawn Mandelbrot entity
                 let circle_material_handle =
                     prepare_circle_material(&mut circle_material, window_size.x, window_size.y);
@@ -130,6 +132,21 @@ pub fn spawn_visualization(
                         .spawn(MaterialMesh2dBundle {
                             mesh: audio_mesh.clone(),
                             material: circle_material_handle,
+                            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                            ..Default::default()
+                        })
+                        .id(),
+                );
+            }
+            VisualizationType::Polygon => {
+                // Spawn Mandelbrot entity
+                let polygon_material_handle =
+                    prepare_polygon_material(&mut polygon_material, window_size.x, window_size.y);
+                polygon_entity.0 = Some(
+                    commands
+                        .spawn(MaterialMesh2dBundle {
+                            mesh: audio_mesh.clone(),
+                            material: polygon_material_handle,
                             transform: Transform::from_xyz(0.0, 0.0, 0.0),
                             ..Default::default()
                         })
@@ -149,8 +166,10 @@ pub fn window_resized_event(
     visualization_type: Res<VisualizationType>,
     mut audio_material: ResMut<Assets<AudioMaterial>>,
     mut circle_material: ResMut<Assets<CircleMaterial>>,
+    mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     mut audio_entity: ResMut<AudioEntity>,
     mut circle_entity: ResMut<CircleEntity>,
+    mut polygon_entity: ResMut<PolygonEntity>,
 ) {
     for event in events.iter() {
         println!("Updating Window Size");
@@ -160,6 +179,9 @@ pub fn window_resized_event(
             commands.entity(entity).despawn();
         }
         if let Some(entity) = circle_entity.0.take() {
+            commands.entity(entity).despawn();
+        }
+        if let Some(entity) = polygon_entity.0.take() {
             commands.entity(entity).despawn();
         }
 
@@ -195,6 +217,21 @@ pub fn window_resized_event(
                         .spawn(MaterialMesh2dBundle {
                             mesh: Mesh2dHandle(mesh_handle),
                             material: circle_material_handle,
+                            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                            ..Default::default()
+                        })
+                        .id(),
+                );
+            }
+            VisualizationType::Polygon => {
+                // Prepare and spawn a new polygon visualizer entity.
+                let polygon_material_handle =
+                    prepare_polygon_material(&mut polygon_material, event.width, event.height);
+                polygon_entity.0 = Some(
+                    commands
+                        .spawn(MaterialMesh2dBundle {
+                            mesh: Mesh2dHandle(mesh_handle),
+                            material: polygon_material_handle,
                             transform: Transform::from_xyz(0.0, 0.0, 0.0),
                             ..Default::default()
                         })

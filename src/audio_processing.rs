@@ -8,6 +8,7 @@ use crate::NUM_BUCKETS;
 
 use crate::bar_material::AudioMaterial;
 use crate::circle_material::CircleMaterial;
+use crate::polygon_material::PolygonMaterial;
 use crate::VisualizationType;
 
 #[derive(Resource)]
@@ -42,6 +43,7 @@ pub fn audio_event_system(
     audio_receiver: Res<AudioReceiver>,
     mut bar_material: ResMut<Assets<AudioMaterial>>,
     mut circle_material: ResMut<Assets<CircleMaterial>>,
+    mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut visualizer_state: ResMut<AudioVisualizerState>,
     visualization_type: Res<VisualizationType>,
@@ -100,6 +102,13 @@ pub fn audio_event_system(
                         VisualizationType::Circle => {
                             // Update the material properties
                             for (_, material) in circle_material.iter_mut() {
+                                material.normalized_data = normalized_buckets;
+                                material.viewport_width = window_size.x;
+                                material.viewport_height = window_size.y;
+                            }
+                        }
+                        VisualizationType::Polygon => {
+                            for (_, material) in polygon_material.iter_mut() {
                                 material.normalized_data = normalized_buckets;
                                 material.viewport_width = window_size.x;
                                 material.viewport_height = window_size.y;
