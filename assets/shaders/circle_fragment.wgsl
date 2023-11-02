@@ -26,25 +26,28 @@ var<uniform> globals: Globals;
 
 
 
+
 fn value_to_color(value: f32) -> vec4<f32> {
-    // Define start, middle, and end colors for the gradient
-    let start_color = vec3<f32>(0.0, 1.0, 0.0); // Blue
-    let middle_color = vec3<f32>(1.0, 0.0, 0.0); // Green
-    let end_color = vec3<f32>(0.0, 0.0, 1.0); // Red
+    // Define colors
+    let color1 = vec3<f32>(0.5, 0.0, 1.0); // Purple
+    let color2 = vec3<f32>(0.0, 1.0, 1.0); // Cyan
+    let color3 = vec3<f32>(1.0, 0.0, 0.0); // Red
+    let color4 = vec3<f32>(1.0, 1.0, 0.0); // Yellow
 
-    // Declare a variable for the color
+    // Create a gradient based on the value
     var color: vec3<f32>;
-
-    // Use an if statement to determine which gradient range to use
-    if (value < 0.5) {
-        color = mix(start_color, middle_color, value * 2.0);
+    if (value < 0.33) {
+        color = mix(color1, color2, value * 3.0);
+    } else if (value < 0.66) {
+        color = mix(color2, color3, (value - 0.33) * 3.0);
     } else {
-        color = mix(middle_color, end_color, (value - 0.5) * 2.0);
+        color = mix(color3, color4, (value - 0.66) * 3.0);
     }
 
     // Return the color with full opacity
     return vec4<f32>(color, 1.0);
 }
+
 
 
 
@@ -55,8 +58,9 @@ fn fragment(
     @location(1) normals: vec3<f32>,
     @location(2) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
+    let aspect_ratio = viewport_width / viewport_height;
     
-    // Set the center of the circle to be the middle of the UV space
+    // Set the center of the circle to be the middle of the UV space, adjusted for aspect ratio
     let center = vec2<f32>(0.5, 0.5);
 
     // Calculate the angle from the current UV coordinate to the center
@@ -66,7 +70,7 @@ fn fragment(
         angle_uv_positive += 2.0 * 3.14159;
     }
 
-    // Determine the index based on the angle (64 slices)
+    // Determine the index based on the angle (64 sections)
     let index = i32(angle_uv_positive / (2.0 * 3.14159) * 64.0);
 
     // Calculate which component of vec4<f32> to use
@@ -77,21 +81,18 @@ fn fragment(
     let audio_value = normalized_data[array_index][component_index];
 
     // Define a radius based on the audio_value
-    let radius = 0.1 + audio_value * 0.4;
+    let radius = 0.1 + audio_value * 0.2;
 
     // Correct the UV coordinates based on the aspect ratio
-    let aspect_ratio = viewport_width / viewport_height;
-    let uv_corrected = vec2<f32>(uv.x * aspect_ratio, uv.y);
+    let uv_corrected = vec2<f32>(uv.x, uv.y * aspect_ratio);
 
     // Calculate distance from the UV coordinate to the center
-    let distance_to_center = distance(center, uv_corrected);
+    let distance_to_center = distance(center, uv) * aspect_ratio;
 
-    // Determine if the current UV coordinate is within the slice's radius
+    // Determine if the current UV coordinate is within the circle's radius
     if (distance_to_center < radius) {
-        // Color the pixel based on the audio value
         return value_to_color(audio_value);
     } else {
-        // Otherwise, make it transparent or some background color
         return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Black color
     }
 }

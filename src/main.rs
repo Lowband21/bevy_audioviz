@@ -69,6 +69,15 @@ fn setup(mut commands: Commands) {
 /// This system toggles the vsync mode when pressing the button V.
 /// You'll see fps increase displayed in the console.
 fn toggle_vsync(input: Res<Input<KeyCode>>, mut windows: Query<&mut Window>) {
+    if input.just_pressed(KeyCode::C) {
+        let mut window = windows.single_mut();
+        if window.resizable {
+            window.resolution = (1000., 1000.).into();
+            window.resizable = false;
+        } else {
+            window.resizable = true;
+        }
+    }
     if input.just_pressed(KeyCode::V) {
         let mut window = windows.single_mut();
 
