@@ -196,8 +196,7 @@ pub fn prepare_audio_material(
 }
 // Define a new Bevy event to communicate audio data to the main thread.
 #[derive(Event)]
-pub struct AudioProcessedEvent([Vec4; 8]);
-
+pub struct AudioProcessedEvent(Vec<Vec<f32>>);
 #[derive(Debug)]
 pub enum DeviceType {
     Input(),
@@ -207,59 +206,43 @@ pub enum DeviceType {
 // This function initializes the audio input stream and returns a receiver for audio events.
 pub fn stream_input(
     device_type: DeviceType,
+    buffer_size: usize, // Add this parameter to specify the buffer size
 ) -> Receiver<AudioProcessedEvent> {
-    // Create a channel to communicate between the audio thread and Bevy's main thread.
     let (sender, receiver) = channel();
 
-    // Spawn a new thread for audio processing to prevent blocking Bevy's main thread.
     thread::spawn(move || {
-        // Set up the audio host and select the appropriate device.
         let host = cpal::default_host();
         let device = match device_type {
             DeviceType::Input() => host.default_input_device().expect("No default input device"),
             DeviceType::Output() => host.default_output_device().expect("No default output device"),
         };
 
-        // Configure the stream based on the device type.
-        let device_config = match device_type {
-            DeviceType::Input() => device.default_input_config().expect("Failed to get default input config"),
-            DeviceType::Output() => device.default_output_config().expect("Failed to get default output config"),
-        };
+        let config = device.default_input_config().expect("Failed to get default input config");
 
-        // Create the audio stream based on the desired sample format.
-        let stream = match device_config.sample_format() {
-            cpal::SampleFormat::F32 => device.build_input_stream(
-                &device_config.into(),
-                move |data: &[f32], _: &_| {
-                    // Process the audio data and pack into [Vec4; 8]
-                    let mut processed_data = [Vec4::ZERO; 8];
-                    for (i, chunk) in data.chunks(4).enumerate() {
-                        let mut vec = Vec4::ZERO;
-                        for (j, &sample) in chunk.iter().enumerate() {
-                            vec[j] = sample; // Assign each sample to the corresponding component in the Vec4
-                        }
-                        if i < 8 {
-                            processed_data[i] = vec;
-                        }
-                    }
+        let err_fn = |err| eprintln!("An error occurred on the audio stream: {}", err);
 
-                    // Send the processed audio data to the main Bevy thread through the channel.
-                    sender.send(AudioProcessedEvent(processed_data)).expect("Failed to send audio data");
-                },
-                |err| eprintln!("An error occurred on the audio stream: {}", err),
-                None
-            ).expect("Failed to build audio input stream"),
+        let stream = match config.sample_format() {
+            cpal::SampleFormat::F32 => device.build_input_stream(&config.into(), move |data: &[f32], _: &_| {
+                // Create a buffer with the specified buffer size
+                let mut buffer = vec![0.0; buffer_size];
+
+                // Fill the buffer with the incoming audio data
+                for (i, &sample) in data.iter().enumerate().take(buffer_size) {
+                    buffer[i] = sample;
+                }
+
+                // Send the buffer to the main Bevy thread through the channel
+                // Here the buffer is split into chunks of size that can be changed as needed
+                sender.send(AudioProcessedEvent(buffer.chunks_exact(4).map(|c| c.to_vec()).collect()))
+                    .expect("Failed to send audio data");
+            }, err_fn, None).expect("Failed to build audio input stream"),
             _ => panic!("Unsupported sample format"),
         };
 
-        // Start the audio stream.
         stream.play().expect("Failed to play audio stream");
-
-        // Keep the thread alive to continue processing audio data.
         thread::park();
     });
 
-    // Return the receiver, which will be used in the Bevy app to receive audio data.
     receiver
 }
 
@@ -295,7 +278,7 @@ fn audio_capture_startup_system(
     mut commands: Commands,
 ) {
     // Retrieve the receiver from the `stream_input` function.
-    let audio_receiver = AudioReceiver{receiver: Arc::new(Mutex::new(stream_input(DeviceType::Output())))};
+    let audio_receiver = AudioReceiver{receiver: Arc::new(Mutex::new(stream_input(DeviceType::Output(), 1024)))};
 
     // Insert the receiver into Bevy's resource system for later access.
     commands.insert_resource(audio_receiver);
@@ -327,54 +310,60 @@ impl AudioVisualizerState {
     }
 }
 
+
+// Entry function for the audio event system
 fn audio_event_system(
     audio_receiver: Res<AudioReceiver>,
     mut materials: ResMut<Assets<AudioMaterial>>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut visualizer_state: ResMut<AudioVisualizerState>,
 ) {
-    let window = primary_window.single();
-    let window_size = Vec2::new(window.width(), window.height());
+    if let Some(window) = primary_window.iter().next() {
+        let window_size = Vec2::new(window.width(), window.height());
 
-    if let Ok(audio_event) = audio_receiver.receiver.lock().unwrap().try_recv() {
-        let mut fft_planner = FftPlanner::new();
-        let fft = fft_planner.plan_fft_forward(1024);
+        if window_size.x > 0.0 && window_size.y > 0.0 {
+            if let Ok(audio_event) = audio_receiver.receiver.lock().unwrap().try_recv() {
+                let mut fft_planner = FftPlanner::new();
+                let fft = fft_planner.plan_fft_forward(1024);
 
-        // Convert audio samples to complex numbers for FFT
-        let mut input: Vec<Complex<f32>> = audio_event.0
-            .iter()
-            .flat_map(|&vec| vec.to_array().iter().map(|&sample| Complex::new(sample, 0.0)).collect::<Vec<_>>())
-            .collect();
+                // Convert audio samples to complex numbers for FFT
+                // Assuming audio_event.0 is a Vec<Vec4>, where Vec4 is a type with four f32 fields
+                let mut input: Vec<Complex<f32>> = audio_event.0
+                    .iter()
+                    // flatten Vec<Vec4> into an iterator of f32
+                    .flat_map(|vec| vec.iter())
+                    // map each f32 to a Complex<f32>
+                    .map(|&sample| Complex::new(sample, 0.0))
+                    .collect();
 
-        // Zero-pad input to the next power of two for FFT efficiency if necessary
-        let mut buffer = vec![Complex::new(0.0, 0.0); fft.len()];
-        for (i, sample) in input.iter().enumerate() {
-            buffer[i] = *sample;
-        }
+                // Ensure that the input buffer isn't empty and has a length that's a power of two
+                if !input.is_empty() && input.len().is_power_of_two() {
+                    // Perform FFT
+                    fft.process(&mut input);
 
-        // Perform FFT
-        fft.process(&mut buffer);
+                    // Convert FFT output to magnitude and bucket into 32 ranges
+                    let mut buckets = bucketize_fft_to_ranges(&input, 32, 44000);
 
-        // Convert FFT output to magnitude and bucket into 32 ranges
-        let mut buckets = bucketize_fft_to_ranges(&buffer, 32, 1000);
+                    // Apply smoothing to the buckets
+                    let smoothing = 2;
+                    let smoothing_size = 4;
+                    smooth(&mut buckets, smoothing, smoothing_size);
 
-        // Apply smoothing to the buckets
-        let smoothing = 2;
-        let smoothing_size = 4;
-        smooth(&mut buckets, smoothing, smoothing_size);
+                    // Animate bucket transitions
+                    let interpolation_factor = 0.5; // Adjust this value as needed
+                    let animated_buckets = visualizer_state.animate_buckets(&buckets, interpolation_factor);
 
-        // Animate bucket transitions
-        let interpolation_factor = 0.3; // Adjust this value as needed
-        let animated_buckets = visualizer_state.animate_buckets(&buckets, interpolation_factor);
+                    // Normalize animated buckets for visualization
+                    let normalized_buckets = normalize_buckets(&animated_buckets);
 
-        // Normalize animated buckets for visualization
-        let normalized_buckets = normalize_buckets(&animated_buckets);
-
-        // Update the material properties
-        for (_, material) in materials.iter_mut() {
-            material.normalized_data = normalized_buckets;
-            material.viewport_width = window_size.x;
-            material.viewport_height = window_size.y;
+                    // Update the material properties
+                    for (_, material) in materials.iter_mut() {
+                        material.normalized_data = normalized_buckets;
+                        material.viewport_width = window_size.x;
+                        material.viewport_height = window_size.y;
+                    }
+                }
+            }
         }
     }
 }
@@ -435,9 +424,10 @@ fn smooth(
 ) {
     for _ in 0..smoothing {
         for i in 0..buffer.len() - smoothing_size as usize {
-            // reduce smoothing for higher freqs
+            // Reduce smoothing for higher freqs more aggressively
             let percentage: f32 = i as f32 / buffer.len() as f32;
-            let adjusted_smoothing_size = (smoothing_size as f32 * (1.5 - percentage.powf(2.0))).max(1.0) as u32;
+            // This is the change: using a higher power to decrease the smoothing size more for higher frequencies
+            let adjusted_smoothing_size = (smoothing_size as f32 * (1.0 - percentage.powf(3.0))).max(1.0) as u32;
 
             let mut y = 0.0;
             for x in 0..adjusted_smoothing_size as usize {
