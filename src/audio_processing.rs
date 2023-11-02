@@ -7,6 +7,8 @@ use crate::ARRAY_UNIFORM_SIZE;
 use crate::NUM_BUCKETS;
 
 use crate::bar_material::AudioMaterial;
+use crate::circle_material::CircleMaterial;
+use crate::VisualizationType;
 
 #[derive(Resource)]
 pub struct AudioVisualizerState {
@@ -38,9 +40,11 @@ impl AudioVisualizerState {
 // Entry function for the audio event system
 pub fn audio_event_system(
     audio_receiver: Res<AudioReceiver>,
-    mut materials: ResMut<Assets<AudioMaterial>>,
+    mut bar_material: ResMut<Assets<AudioMaterial>>,
+    mut circle_material: ResMut<Assets<CircleMaterial>>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut visualizer_state: ResMut<AudioVisualizerState>,
+    visualization_type: Res<VisualizationType>,
 ) {
     if let Some(window) = primary_window.iter().next() {
         let window_size = Vec2::new(window.width(), window.height());
@@ -84,11 +88,23 @@ pub fn audio_event_system(
                     // Normalize animated buckets for visualization
                     let normalized_buckets = normalize_buckets(&animated_buckets);
 
-                    // Update the material properties
-                    for (_, material) in materials.iter_mut() {
-                        material.normalized_data = normalized_buckets;
-                        material.viewport_width = window_size.x;
-                        material.viewport_height = window_size.y;
+                    match *visualization_type {
+                        VisualizationType::Bar => {
+                            // Update the material properties
+                            for (_, material) in bar_material.iter_mut() {
+                                material.normalized_data = normalized_buckets;
+                                material.viewport_width = window_size.x;
+                                material.viewport_height = window_size.y;
+                            }
+                        }
+                        VisualizationType::Circle => {
+                            // Update the material properties
+                            for (_, material) in circle_material.iter_mut() {
+                                material.normalized_data = normalized_buckets;
+                                material.viewport_width = window_size.x;
+                                material.viewport_height = window_size.y;
+                            }
+                        }
                     }
                 }
             }

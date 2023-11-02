@@ -7,12 +7,16 @@ use bevy::window::{PresentMode, WindowTheme};
 mod audio_capture;
 mod audio_processing;
 mod bar_material;
+mod circle_material;
 mod visualization;
 
 use crate::audio_capture::{audio_capture_startup_system, AudioReceiver};
 use crate::audio_processing::{audio_event_system, AudioVisualizerState};
 use crate::bar_material::{AudioEntity, AudioMaterial};
-use crate::visualization::{spawn_visualization, window_resized_event};
+use crate::circle_material::{CircleEntity, CircleMaterial};
+use crate::visualization::{
+    spawn_visualization, visualization_toggle_system, window_resized_event, VisualizationType,
+};
 
 const ARRAY_UNIFORM_SIZE: usize = 16;
 const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
@@ -36,15 +40,25 @@ fn main() {
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(AudioVisualizerState::new(NUM_BUCKETS))
-        .init_resource::<AudioEntity>()
         .init_resource::<AudioReceiver>() // Initialize the `AudioReceiver` resource.
+        .init_resource::<VisualizationType>()
         .add_systems(Startup, setup)
-        .add_systems(Startup, spawn_visualization)
+        .add_systems(Update, spawn_visualization)
+        .add_systems(Update, visualization_toggle_system)
         .add_systems(Update, window_resized_event)
-        .add_systems(Startup, audio_capture_startup_system)
-        .add_systems(Update, audio_event_system)
+        .add_systems(Update, audio_capture_startup_system)
+        .add_systems(
+            Update,
+            audio_event_system
+                .after(audio_capture_startup_system)
+                .before(visualization_toggle_system)
+                .before(spawn_visualization),
+        )
         .add_systems(Update, toggle_vsync)
+        .init_resource::<AudioEntity>()
+        .init_resource::<CircleEntity>()
         .add_plugins(Material2dPlugin::<AudioMaterial>::default())
+        .add_plugins(Material2dPlugin::<CircleMaterial>::default())
         .run();
 }
 

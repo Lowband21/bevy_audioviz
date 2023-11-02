@@ -98,14 +98,15 @@ fn fragment(
     // Calculate the x position relative to the center of the screen
     let centered_x = uv.x - 0.5;
 
-    // Calculate bar height and flip y coordinate system
-    let bar_height = audio_value;
-    let flipped_y = 1.0 - uv.y;
 
+    // Calculate bar height and flip y coordinate system
+    let bar_height = audio_value * 0.8; // Scale the bar height to 80%
+    let flipped_y = 1.0 - uv.y;
+    
     // Soft edges using smoothstep function
     let edge_softness = 0.01; // Edge softness value
     let alpha = smoothstep(0.0, edge_softness, bar_height - flipped_y);
-
+    
     // Draw the bar with soft edges
     if (flipped_y <= bar_height) {
         return vec4<f32>(color.rgb, alpha);
