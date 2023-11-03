@@ -70,6 +70,9 @@ pub fn stream_input(
         let config = device
             .default_output_config()
             .expect("Failed to get default input config");
+        let config_clone = config.clone();
+        let supported_buffer_size: cpal::SupportedBufferSize =
+            config_clone.buffer_size().to_owned();
 
         let stream = device
             .build_input_stream(
@@ -80,12 +83,13 @@ pub fn stream_input(
                         return;
                     }
 
-                    if data.len() < buffer_size {
-                        eprintln!("Received less data than buffer size.");
-                        return;
-                    }
-
-                    let buffer: Vec<f32> = data.iter().cloned().take(buffer_size).collect();
+                    match supported_buffer_size {
+                        cpal::SupportedBufferSize::Range { min, max } => {
+                            if data.len() > max as usize && data.len() < min as usize {
+                                eprintln!("Buffer ({}) is outside of range: {}, {}", data.len(), min, max);
+                                return;
+                            }
+                    let buffer: Vec<f32> = data.iter().cloned().take(buffer_size as usize).collect();
                     let audio_event =
                         AudioProcessedEvent(buffer.chunks_exact(4).map(Vec::from).collect());
 
@@ -94,6 +98,13 @@ pub fn stream_input(
                         rf_closure.store(false, Ordering::SeqCst); // Signal the thread to exit
                         return; // Exit early to avoid further processing
                     }
+                        }
+                        cpal::SupportedBufferSize::Unknown => {
+                            panic!("Buffer size is unknown");
+
+                        }
+                    }
+
                 },
                 err_fn,
                 None,
