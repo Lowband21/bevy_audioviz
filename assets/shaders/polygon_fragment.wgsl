@@ -60,12 +60,12 @@ fn fragment(
     @location(1) normals: vec3<f32>,
     @location(2) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-    
-    // Set the center of the circle to be the middle of the UV space
-    let center = vec2<f32>(0.5, 0.5);
-
     // Calculate the aspect ratio
     let aspect_ratio = viewport_height / viewport_width;
+    
+    // Set the center of the circle to be the middle of the UV space
+    let center = vec2<f32>(0.5, 0.5 * aspect_ratio);
+
     let uv_corrected = vec2<f32>(uv.x, uv.y * aspect_ratio);
 
     // Calculate the angle from the current UV coordinate to the center
