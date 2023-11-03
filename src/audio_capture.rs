@@ -36,7 +36,7 @@ impl FromWorld for AudioReceiver {
             .clone();
 
         // Pass the run flag to the stream_input function
-        let (audio_receiver, thread_handle) = stream_input(DeviceType::Output, 2048, run_flag);
+        let (audio_receiver, thread_handle) = stream_input(DeviceType::Output, 4096, run_flag);
 
         AudioReceiver {
             receiver: Arc::new(Mutex::new(audio_receiver)),
@@ -159,7 +159,7 @@ pub fn audio_capture_startup_system(
         // Restart the audio thread with a new run flag
         let new_run_flag = Arc::new(AtomicBool::new(true));
         let (audio_receiver, thread_handle) =
-            stream_input(DeviceType::Output, 2048, new_run_flag.clone());
+            stream_input(DeviceType::Output, 4096, new_run_flag.clone());
         commands.insert_resource(AudioThreadFlag(new_run_flag));
         commands.insert_resource(AudioReceiver {
             receiver: Arc::new(Mutex::new(audio_receiver)),

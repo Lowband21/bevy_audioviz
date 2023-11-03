@@ -8,6 +8,7 @@ use crate::NUM_BUCKETS;
 
 use crate::bar_material::AudioMaterial;
 use crate::circle_material::CircleMaterial;
+use crate::circle_split_material::CircleSplitMaterial;
 use crate::polygon_material::PolygonMaterial;
 use crate::VisualizationType;
 
@@ -43,6 +44,7 @@ pub fn audio_event_system(
     audio_receiver: Res<AudioReceiver>,
     mut bar_material: ResMut<Assets<AudioMaterial>>,
     mut circle_material: ResMut<Assets<CircleMaterial>>,
+    mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut visualizer_state: ResMut<AudioVisualizerState>,
@@ -60,7 +62,12 @@ pub fn audio_event_system(
                 let fft = fft_planner.plan_fft_forward(power_of_two);
 
                 // Convert audio samples to complex numbers for FFT
-                let mut input: Vec<Complex<f32>> = audio_event.0.iter().flat_map(|vec| vec.iter()).map(|&sample| Complex::new(sample, 0.0)).collect();
+                let mut input: Vec<Complex<f32>> = audio_event
+                    .0
+                    .iter()
+                    .flat_map(|vec| vec.iter())
+                    .map(|&sample| Complex::new(sample, 0.0))
+                    .collect();
 
                 // Resize the input buffer with zeros to match the power of two size
                 input.resize(power_of_two, Complex::new(0.0, 0.0));
@@ -72,16 +79,21 @@ pub fn audio_event_system(
                 fft.process(&mut input);
 
                 // Convert FFT output to magnitude and bucket into 32 ranges
-                let mut buckets = bucketize_fft_to_ranges(&input, NUM_BUCKETS, 40000);
+                let mut buckets = bucketize_fft_to_ranges(&input, NUM_BUCKETS + 16, 24000);
+                buckets = buckets.iter().cloned().skip(10).take(NUM_BUCKETS).collect();
 
                 // Apply smoothing to the buckets
                 let smoothing = 2;
-                let smoothing_size = 4;
+                let smoothing_size = 8;
                 smooth(&mut buckets, smoothing, smoothing_size);
+
+                let amplification_factor = 1.5;
+                amplify_differences(&mut buckets, amplification_factor);
 
                 // Animate bucket transitions
                 let interpolation_factor = 0.5; // Adjust this value as needed
-                let animated_buckets = visualizer_state.animate_buckets(&buckets, interpolation_factor);
+                let animated_buckets =
+                    visualizer_state.animate_buckets(&buckets, interpolation_factor);
 
                 // Normalize animated buckets for visualization
                 let normalized_buckets = normalize_buckets(&animated_buckets);
@@ -97,6 +109,13 @@ pub fn audio_event_system(
                     }
                     VisualizationType::Circle => {
                         for (_, material) in circle_material.iter_mut() {
+                            material.normalized_data = normalized_buckets;
+                            material.viewport_width = window_size.x;
+                            material.viewport_height = window_size.y;
+                        }
+                    }
+                    VisualizationType::CircleSplit => {
+                        for (_, material) in circle_split_material.iter_mut() {
                             material.normalized_data = normalized_buckets;
                             material.viewport_width = window_size.x;
                             material.viewport_height = window_size.y;
@@ -193,5 +212,16 @@ fn smooth(buffer: &mut Vec<f32>, smoothing: u32, smoothing_size: u32) {
             }
             buffer[i] = weighted_sum / weight_sum;
         }
+    }
+}
+fn amplify_differences(buckets: &mut Vec<f32>, factor: f32) {
+    // Ensure the factor is positive to avoid complex numbers
+    let positive_factor = factor.abs();
+
+    // Apply the amplification factor to each bucket
+    for value in buckets.iter_mut() {
+        // Apply a power function to amplify differences
+        // The factor determines the degree of amplification
+        *value = value.powf(positive_factor);
     }
 }
