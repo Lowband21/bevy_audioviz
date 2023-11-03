@@ -79,12 +79,12 @@ pub fn audio_event_system(
                 fft.process(&mut input);
 
                 // Convert FFT output to magnitude and bucket into 32 ranges
-                let mut buckets = bucketize_fft_to_ranges(&input, NUM_BUCKETS + 16, 24000);
-                buckets = buckets.iter().cloned().skip(10).take(NUM_BUCKETS).collect();
+                let mut buckets = bucketize_fft_to_ranges(&input, NUM_BUCKETS, 48000);
+                buckets = buckets.iter().cloned().collect();
 
                 // Apply smoothing to the buckets
                 let smoothing = 2;
-                let smoothing_size = 8;
+                let smoothing_size = 4;
                 smooth(&mut buckets, smoothing, smoothing_size);
 
                 let amplification_factor = 1.5;
@@ -143,6 +143,7 @@ fn apply_hann_window(input: &mut Vec<Complex<f32>>) {
     }
 }
 use rustfft::num_traits::Float; // Import the Float trait
+
 fn bucketize_fft_to_ranges(
     input: &[Complex<f32>],
     num_buckets: usize,
@@ -153,25 +154,27 @@ fn bucketize_fft_to_ranges(
 
     let min_log_freq = 20f32.log2(); // Log2 of 20 Hz
     let max_log_freq = (sample_rate as f32 / 2.0).log2(); // Log2 of Nyquist frequency
+    let log_freq_range = max_log_freq - min_log_freq;
+
+    // Calculate the boundaries of the buckets in the logarithmic scale
+    let bucket_boundaries: Vec<f32> = (0..=num_buckets)
+        .map(|i| min_log_freq + (log_freq_range * i as f32 / num_buckets as f32))
+        .collect();
 
     // Iterate over the first half of the FFT output
     for (i, bin) in input.iter().enumerate().take(half_len) {
         let freq = i as f32 * sample_rate as f32 / input.len() as f32; // Frequency of the FFT bin
         let log_freq = freq.log2();
 
-        // Calculate the bucket index based on the logarithmic frequency
-        let bucket_index = ((log_freq - min_log_freq) / (max_log_freq - min_log_freq)
-            * num_buckets as f32)
-            .floor() as usize;
+        // Find the bucket index for the logarithmic frequency
+        let bucket_index = bucket_boundaries
+            .iter()
+            .position(|&boundary| log_freq < boundary)
+            .unwrap_or(num_buckets);
 
         if bucket_index < buckets.len() {
             buckets[bucket_index] += bin.norm_sqr(); // Add squared magnitude to the bucket
         }
-    }
-
-    // Compute the average magnitude for each bucket
-    for value in &mut buckets {
-        *value = value.sqrt();
     }
 
     buckets
@@ -195,6 +198,9 @@ fn normalize_buckets(buckets: &[f32]) -> [Vec4; ARRAY_UNIFORM_SIZE] {
 }
 
 fn smooth(buffer: &mut Vec<f32>, smoothing: u32, smoothing_size: u32) {
+    let gaussian_weight =
+        |distance: f32| -> f32 { (-distance.powi(2) / (2.0 * smoothing_size as f32)).exp() };
+
     for _ in 0..smoothing {
         let temp_buffer = buffer.clone();
 
@@ -203,9 +209,8 @@ fn smooth(buffer: &mut Vec<f32>, smoothing: u32, smoothing_size: u32) {
             let mut weight_sum = 0.0;
             for j in i.saturating_sub(smoothing_size as usize)..=i + smoothing_size as usize {
                 if j < buffer.len() {
-                    // Apply a weight that decreases with distance from the current index
                     let distance = (j as isize - i as isize).abs() as f32;
-                    let weight = 1.0 / (1.0 + distance); // You can adjust the formula for weight as needed
+                    let weight = gaussian_weight(distance);
                     weighted_sum += temp_buffer[j] * weight;
                     weight_sum += weight;
                 }
@@ -214,6 +219,7 @@ fn smooth(buffer: &mut Vec<f32>, smoothing: u32, smoothing_size: u32) {
         }
     }
 }
+
 fn amplify_differences(buckets: &mut Vec<f32>, factor: f32) {
     // Ensure the factor is positive to avoid complex numbers
     let positive_factor = factor.abs();

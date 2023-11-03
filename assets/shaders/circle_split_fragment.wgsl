@@ -27,26 +27,15 @@ var<uniform> globals: Globals;
 
 
 fn value_to_color(value: f32) -> vec4<f32> {
-    // Define start, middle, and end colors for the gradient
-    let start_color = vec3<f32>(0.0, 1.0, 0.0); // Blue
-    let middle_color = vec3<f32>(1.0, 0.0, 0.0); // Green
-    let end_color = vec3<f32>(0.0, 0.0, 1.0); // Red
+    // Define a grayscale value by setting all color components to the value
+    let grayscale = value; // Value between 0.0 (black) and 1.0 (white)
 
-    // Declare a variable for the color
-    var color: vec3<f32>;
-
-    // Use an if statement to determine which gradient range to use
-    if (value < 0.5) {
-        color = mix(start_color, middle_color, value * 2.0);
-    } else {
-        color = mix(middle_color, end_color, (value - 0.5) * 2.0);
-    }
+    // Create a color vector using the grayscale value for all components
+    let color = vec3<f32>(grayscale, grayscale, grayscale);
 
     // Return the color with full opacity
     return vec4<f32>(color, 1.0);
 }
-
-
 
 @fragment
 fn fragment(

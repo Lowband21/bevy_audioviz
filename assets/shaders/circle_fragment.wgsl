@@ -47,7 +47,6 @@ fn value_to_color(value: f32) -> vec4<f32> {
 }
 
 
-
 @fragment
 fn fragment(
     @builtin(position) coord: vec4<f32>,

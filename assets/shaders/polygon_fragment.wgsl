@@ -1,3 +1,4 @@
+
 @group(1) @binding(0)
 var<uniform> normalized_data: array<vec4<f32>, 16>;
 
@@ -48,11 +49,6 @@ fn value_to_color(value: f32) -> vec4<f32> {
     return vec4<f32>(color, 1.0);
 }
 
-
-
-
-
-
 @fragment
 fn fragment(
     @builtin(position) coord: vec4<f32>,
@@ -60,12 +56,12 @@ fn fragment(
     @location(1) normals: vec3<f32>,
     @location(2) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-    // Calculate the aspect ratio
-    let aspect_ratio = viewport_height / viewport_width;
     
     // Set the center of the circle to be the middle of the UV space
-    let center = vec2<f32>(0.5, 0.5 * aspect_ratio);
+    let center = vec2<f32>(0.5, 0.5);
 
+    // Calculate the aspect ratio
+    let aspect_ratio = viewport_height / viewport_width;
     let uv_corrected = vec2<f32>(uv.x, uv.y * aspect_ratio);
 
     // Calculate the angle from the current UV coordinate to the center
