@@ -174,7 +174,7 @@ pub fn window_resized_event(
     for event in events.iter() {
         println!("Updating Window Size");
 
-         // Create a new mesh for the updated window size.
+        // Create a new mesh for the updated window size.
         let mesh_handle = meshes.add(Mesh::from(shape::Quad {
             size: Vec2::new(event.width, event.height),
             flip: false,

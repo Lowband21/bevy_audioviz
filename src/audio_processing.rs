@@ -201,22 +201,3 @@ fn smooth(buffer: &mut Vec<f32>, smoothing: u32, smoothing_size: u32) {
         }
     }
 }
-
-//// The smooth function as you provided
-//fn smooth(buffer: &mut Vec<f32>, smoothing: u32, smoothing_size: u32) {
-//    for _ in 0..smoothing {
-//        for i in 0..buffer.len() - smoothing_size as usize {
-//            // Reduce smoothing for higher freqs more aggressively
-//            let percentage: f32 = i as f32 / buffer.len() as f32;
-//            // This is the change: using a higher power to decrease the smoothing size more for higher frequencies
-//            let adjusted_smoothing_size =
-//                (smoothing_size as f32 * (1.0 - percentage.powf(1.8))).max(1.0) as u32;
-//
-//            let mut y = 0.0;
-//            for x in 0..adjusted_smoothing_size as usize {
-//                y += buffer[i + x];
-//            }
-//            buffer[i] = y / adjusted_smoothing_size as f32;
-//        }
-//    }
-//}

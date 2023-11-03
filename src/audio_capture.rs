@@ -48,7 +48,6 @@ impl FromWorld for AudioReceiver {
 // Define a simple wrapper around Arc<AtomicBool> to make it a Bevy resource.
 #[derive(Resource)]
 pub struct AudioThreadFlag(pub Arc<AtomicBool>);
-
 pub fn stream_input(
     device_type: DeviceType,
     buffer_size: usize,
@@ -68,18 +67,12 @@ pub fn stream_input(
                 .expect("No default output device"),
         };
 
-        let config = match device_type {
-            DeviceType::Input => device
-                .default_input_config()
-                .expect("Failed to get default input config"),
-            DeviceType::Output => device
-                .default_output_config()
-                .expect("Failed to get default output config"),
-        };
+        let config = device
+            .default_output_config()
+            .expect("Failed to get default input config");
 
-        let mut accumulated_data = Vec::new();
-
-        let stream = device.build_input_stream(
+        let stream = device
+            .build_input_stream(
                 &config.into(),
                 move |data: &[f32], _: &_| {
                     if !rf_closure.load(Ordering::SeqCst) {
@@ -87,19 +80,19 @@ pub fn stream_input(
                         return;
                     }
 
-                    accumulated_data.extend_from_slice(data);
+                    if data.len() < buffer_size {
+                        eprintln!("Received less data than buffer size.");
+                        return;
+                    }
 
-                    if accumulated_data.len() >= buffer_size {
-                        // Process the accumulated data here
+                    let buffer: Vec<f32> = data.iter().cloned().take(buffer_size).collect();
+                    let audio_event =
+                        AudioProcessedEvent(buffer.chunks_exact(4).map(Vec::from).collect());
 
-                        let buffer: Vec<f32> = accumulated_data.drain(..buffer_size).collect();
-                        let audio_event = AudioProcessedEvent(buffer.chunks_exact(4).map(Vec::from).collect());
-
-                        if sender.send(audio_event).is_err() {
-                            eprintln!("The receiver has been dropped, terminating audio input stream.");
-                            rf_closure.store(false, Ordering::SeqCst); // Signal the thread to exit
-                            return; // Exit early to avoid further processing
-                        }
+                    if sender.send(audio_event).is_err() {
+                        eprintln!("The receiver has been dropped, terminating audio input stream.");
+                        rf_closure.store(false, Ordering::SeqCst); // Signal the thread to exit
+                        return; // Exit early to avoid further processing
                     }
                 },
                 err_fn,
