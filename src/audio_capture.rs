@@ -48,7 +48,6 @@ impl FromWorld for AudioReceiver {
 // Define a simple wrapper around Arc<AtomicBool> to make it a Bevy resource.
 #[derive(Resource)]
 pub struct AudioThreadFlag(pub Arc<AtomicBool>);
-
 pub fn stream_input(
     device_type: DeviceType,
     buffer_size: usize,
@@ -135,8 +134,12 @@ pub fn audio_capture_startup_system(
         // Join the audio thread
         if let Some(mut receiver) = audio_receiver_res {
             if let Some(thread_handle) = receiver.thread_handle.take() {
-                thread_handle.join().expect("Failed to join audio thread");
+                match thread_handle.join() {
+                    Ok(_) => println!("Audio thread joined successfully."),
+                    Err(e) => eprintln!("Failed to join audio thread: {:?}", e),
+                }
             }
+
             // Now it's safe to remove the AudioReceiver resource
             commands.remove_resource::<AudioReceiver>();
         }
