@@ -174,17 +174,6 @@ pub fn window_resized_event(
     for event in events.iter() {
         println!("Updating Window Size");
 
-        // Despawn any existing visualizer entities regardless of type.
-        if let Some(entity) = audio_entity.0.take() {
-            commands.entity(entity).despawn();
-        }
-        if let Some(entity) = circle_entity.0.take() {
-            commands.entity(entity).despawn();
-        }
-        if let Some(entity) = polygon_entity.0.take() {
-            commands.entity(entity).despawn();
-        }
-
         // Create a new mesh for the updated window size.
         let mesh_handle = meshes.add(Mesh::from(shape::Quad {
             size: Vec2::new(event.width, event.height),
@@ -194,6 +183,10 @@ pub fn window_resized_event(
         // Spawn entities based on the current visualization type.
         match *visualization_type {
             VisualizationType::Bar => {
+                // Despawn any existing visualizer entities regardless of type.
+                if let Some(entity) = audio_entity.0.take() {
+                    commands.entity(entity).despawn();
+                }
                 // Prepare and spawn a new bar visualizer entity.
                 let bar_material_handle =
                     prepare_audio_material(&mut audio_material, event.width, event.height);
@@ -209,6 +202,9 @@ pub fn window_resized_event(
                 );
             }
             VisualizationType::Circle => {
+                if let Some(entity) = circle_entity.0.take() {
+                    commands.entity(entity).despawn();
+                }
                 // Prepare and spawn a new circle visualizer entity.
                 let circle_material_handle =
                     prepare_circle_material(&mut circle_material, event.width, event.height);
@@ -224,6 +220,9 @@ pub fn window_resized_event(
                 );
             }
             VisualizationType::Polygon => {
+                if let Some(entity) = polygon_entity.0.take() {
+                    commands.entity(entity).despawn();
+                }
                 // Prepare and spawn a new polygon visualizer entity.
                 let polygon_material_handle =
                     prepare_polygon_material(&mut polygon_material, event.width, event.height);

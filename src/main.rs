@@ -47,7 +47,7 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, spawn_visualization)
         .add_systems(Update, visualization_toggle_system)
-        .add_systems(Update, window_resized_event)
+        .add_systems(Update, window_resized_event.after(spawn_visualization))
         .add_systems(Update, audio_capture_startup_system)
         .add_systems(
             Update,
