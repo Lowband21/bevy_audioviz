@@ -69,7 +69,7 @@ pub fn stream_input(
         };
 
         let config = device
-            .default_input_config()
+            .default_output_config()
             .expect("Failed to get default input config");
 
         let stream = device
