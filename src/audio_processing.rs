@@ -53,67 +53,60 @@ pub fn audio_event_system(
 
         if window_size.x > 0.0 && window_size.y > 0.0 {
             if let Ok(audio_event) = audio_receiver.receiver.lock().unwrap().try_recv() {
-                //println!("{:#?}", audio_event);
                 let mut fft_planner = FftPlanner::new();
-                let fft = fft_planner.plan_fft_forward(2048);
+                let mut input_size = audio_event.0.len();
+                // Calculate the next power of two
+                let power_of_two = input_size.next_power_of_two();
+                let fft = fft_planner.plan_fft_forward(power_of_two);
 
                 // Convert audio samples to complex numbers for FFT
-                // Assuming audio_event.0 is a Vec<Vec4>, where Vec4 is a type with four f32 fields
-                let mut input: Vec<Complex<f32>> = audio_event
-                    .0
-                    .iter()
-                    // flatten Vec<Vec4> into an iterator of f32
-                    .flat_map(|vec| vec.iter())
-                    // map each f32 to a Complex<f32>
-                    .map(|&sample| Complex::new(sample, 0.0))
-                    .collect();
+                let mut input: Vec<Complex<f32>> = audio_event.0.iter().flat_map(|vec| vec.iter()).map(|&sample| Complex::new(sample, 0.0)).collect();
+
+                // Resize the input buffer with zeros to match the power of two size
+                input.resize(power_of_two, Complex::new(0.0, 0.0));
+
                 // Apply a window function to the audio samples before FFT
                 apply_hann_window(&mut input);
 
-                // Ensure that the input buffer isn't empty and has a length that's a power of two
-                if !input.is_empty() && input.len().is_power_of_two() {
-                    // Perform FFT
-                    fft.process(&mut input);
+                // Perform FFT
+                fft.process(&mut input);
 
-                    // Convert FFT output to magnitude and bucket into 32 ranges
-                    let mut buckets = bucketize_fft_to_ranges(&input, NUM_BUCKETS, 40000);
+                // Convert FFT output to magnitude and bucket into 32 ranges
+                let mut buckets = bucketize_fft_to_ranges(&input, NUM_BUCKETS, 40000);
 
-                    // Apply smoothing to the buckets
-                    let smoothing = 2;
-                    let smoothing_size = 4;
-                    smooth(&mut buckets, smoothing, smoothing_size);
+                // Apply smoothing to the buckets
+                let smoothing = 2;
+                let smoothing_size = 4;
+                smooth(&mut buckets, smoothing, smoothing_size);
 
-                    // Animate bucket transitions
-                    let interpolation_factor = 0.5; // Adjust this value as needed
-                    let animated_buckets =
-                        visualizer_state.animate_buckets(&buckets, interpolation_factor);
+                // Animate bucket transitions
+                let interpolation_factor = 0.5; // Adjust this value as needed
+                let animated_buckets = visualizer_state.animate_buckets(&buckets, interpolation_factor);
 
-                    // Normalize animated buckets for visualization
-                    let normalized_buckets = normalize_buckets(&animated_buckets);
+                // Normalize animated buckets for visualization
+                let normalized_buckets = normalize_buckets(&animated_buckets);
 
-                    match *visualization_type {
-                        VisualizationType::Bar => {
-                            // Update the material properties
-                            for (_, material) in bar_material.iter_mut() {
-                                material.normalized_data = normalized_buckets;
-                                material.viewport_width = window_size.x;
-                                material.viewport_height = window_size.y;
-                            }
+                // Update the material properties based on the visualization type
+                match *visualization_type {
+                    VisualizationType::Bar => {
+                        for (_, material) in bar_material.iter_mut() {
+                            material.normalized_data = normalized_buckets;
+                            material.viewport_width = window_size.x;
+                            material.viewport_height = window_size.y;
                         }
-                        VisualizationType::Circle => {
-                            // Update the material properties
-                            for (_, material) in circle_material.iter_mut() {
-                                material.normalized_data = normalized_buckets;
-                                material.viewport_width = window_size.x;
-                                material.viewport_height = window_size.y;
-                            }
+                    }
+                    VisualizationType::Circle => {
+                        for (_, material) in circle_material.iter_mut() {
+                            material.normalized_data = normalized_buckets;
+                            material.viewport_width = window_size.x;
+                            material.viewport_height = window_size.y;
                         }
-                        VisualizationType::Polygon => {
-                            for (_, material) in polygon_material.iter_mut() {
-                                material.normalized_data = normalized_buckets;
-                                material.viewport_width = window_size.x;
-                                material.viewport_height = window_size.y;
-                            }
+                    }
+                    VisualizationType::Polygon => {
+                        for (_, material) in polygon_material.iter_mut() {
+                            material.normalized_data = normalized_buckets;
+                            material.viewport_width = window_size.x;
+                            material.viewport_height = window_size.y;
                         }
                     }
                 }
@@ -121,6 +114,7 @@ pub fn audio_event_system(
         }
     }
 }
+
 fn apply_hann_window(input: &mut Vec<Complex<f32>>) {
     let len = input.len();
     for (i, sample) in input.iter_mut().enumerate() {

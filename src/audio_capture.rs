@@ -89,15 +89,16 @@ pub fn stream_input(
                                 eprintln!("Buffer ({}) is outside of range: {}, {}", data.len(), min, max);
                                 return;
                             }
-                    let buffer: Vec<f32> = data.iter().cloned().take(buffer_size as usize).collect();
-                    let audio_event =
-                        AudioProcessedEvent(buffer.chunks_exact(4).map(Vec::from).collect());
+                            let buffer: Vec<f32> = data.iter().cloned().collect();
+                            let audio_event =
+                                AudioProcessedEvent(buffer.chunks_exact(4).map(Vec::from).collect());
+                            //println!("Buffer {:#?}", audio_event);
 
-                    if sender.send(audio_event).is_err() {
-                        eprintln!("The receiver has been dropped, terminating audio input stream.");
-                        rf_closure.store(false, Ordering::SeqCst); // Signal the thread to exit
-                        return; // Exit early to avoid further processing
-                    }
+                            if sender.send(audio_event).is_err() {
+                                eprintln!("The receiver has been dropped, terminating audio input stream.");
+                                rf_closure.store(false, Ordering::SeqCst); // Signal the thread to exit
+                                return; // Exit early to avoid further processing
+                            }
                         }
                         cpal::SupportedBufferSize::Unknown => {
                             panic!("Buffer size is unknown");
