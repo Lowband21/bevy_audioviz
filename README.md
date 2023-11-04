@@ -6,6 +6,7 @@ https://github.com/Lowband21/bevy_audioviz/assets/49757532/cdd2fd9f-e2dd-44bf-9b
 
 ![screenshot bar](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/assets/screenshot_bar.png)
 ![screenshot circle](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/assets/screenshot_circle.png)
+![screenshot circle split](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/assets/screenshot_circle_split.png)
 ![screenshot polygon](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/assets/screenshot_polygon.png)
 
 ## Features
@@ -61,4 +62,4 @@ Contributions to this project are welcome. Submit a pull request for review.
 This project is released under the MIT license, see LICENSE for more details.
 
 ## Credits
-This project was written from scratch, however, I took a great deal of inspiration from Audioviz, created by BrunoWallner.
+I took a great deal of inspiration from Audioviz, created by BrunoWallner.
