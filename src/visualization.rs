@@ -9,6 +9,7 @@ use crate::circle_material::*;
 use crate::circle_split_material::*;
 use crate::polygon_material::*;
 use crate::AudioReceiver;
+use crate::CfgResource;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
@@ -36,7 +37,9 @@ pub fn visualization_toggle_system(
     mut visualization_type: ResMut<VisualizationType>,
     audio_receiver_res: Option<ResMut<AudioReceiver>>,
     audio_thread_flag: Option<Res<AudioThreadFlag>>,
+    config: Res<CfgResource>,
 ) {
+    let config = &config.0;
     if keyboard_input.just_pressed(KeyCode::Space) {
         // Signal the audio thread to stop before changing the visualization type
         if let Some(mut audio_receiver) = audio_receiver_res {
@@ -64,7 +67,7 @@ pub fn visualization_toggle_system(
         // Restart the audio thread with a new run flag
         let new_run_flag = Arc::new(AtomicBool::new(true));
         let (audio_receiver, thread_handle) =
-            stream_input(DeviceType::Output, 2048, new_run_flag.clone());
+            stream_input(DeviceType::Output, 2048, new_run_flag.clone(), config);
         commands.insert_resource(AudioThreadFlag(new_run_flag));
         commands.insert_resource(AudioReceiver {
             receiver: Arc::new(Mutex::new(audio_receiver)),

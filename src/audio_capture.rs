@@ -1,3 +1,5 @@
+use crate::cfg::MyConfig;
+use crate::CfgResource;
 use bevy::prelude::*;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::mpsc::channel;
@@ -35,8 +37,11 @@ impl FromWorld for AudioReceiver {
             .0
             .clone();
 
+        let config = world.get_resource::<CfgResource>().unwrap().0.clone();
+
         // Pass the run flag to the stream_input function
-        let (audio_receiver, thread_handle) = stream_input(DeviceType::Output, 4096, run_flag);
+        let (audio_receiver, thread_handle) =
+            stream_input(DeviceType::Output, 4096, run_flag, &config);
 
         AudioReceiver {
             receiver: Arc::new(Mutex::new(audio_receiver)),
@@ -52,20 +57,34 @@ pub fn stream_input(
     device_type: DeviceType,
     buffer_size: usize,
     run_flag: Arc<AtomicBool>, // Accept the run flag as a parameter
+    config: &MyConfig,
 ) -> (Receiver<AudioProcessedEvent>, JoinHandle<()>) {
     let (sender, receiver) = channel();
     let rf_closure = run_flag.clone(); // Clone for the closure
+    let config = config.clone();
 
     let thread_handle = thread::spawn(move || {
+        for host in cpal::available_hosts() {
+            println!("{:#?}", host);
+        }
         let host = cpal::default_host();
-        let device = match device_type {
-            DeviceType::Input => host
-                .default_input_device()
-                .expect("No default input device"),
-            DeviceType::Output => host
-                .default_output_device()
-                .expect("No default output device"),
+
+        let mut devices = match device_type {
+            DeviceType::Input => host.input_devices().expect("No default input device"),
+            DeviceType::Output => host.output_devices().expect("No default output device"),
         };
+
+        let mut device = host.default_output_device().unwrap();
+
+        for (_device_index, dev) in devices.enumerate() {
+            if let Some(configured_device) = config.device.clone() {
+                if dev.name().unwrap() == configured_device {
+                    device = dev;
+                    println!("Selected Device: {:#?}", device.name().unwrap());
+                }
+            }
+        }
+        println!("Spawned thread");
 
         let config = device
             .default_output_config()
@@ -82,6 +101,7 @@ pub fn stream_input(
                         // If the run flag is false, return early.
                         return;
                     }
+                    println!("Building audio event");
 
                     match supported_buffer_size {
                         cpal::SupportedBufferSize::Range { min, max } => {
@@ -136,6 +156,7 @@ pub fn audio_capture_startup_system(
     mut audio_receiver_res: Option<ResMut<AudioReceiver>>,
     visualization_type: Res<VisualizationType>,
     audio_thread_flag: Option<Res<AudioThreadFlag>>,
+    config: Res<CfgResource>,
 ) {
     if visualization_type.is_changed() {
         // Signal the audio thread to stop
@@ -159,7 +180,7 @@ pub fn audio_capture_startup_system(
         // Restart the audio thread with a new run flag
         let new_run_flag = Arc::new(AtomicBool::new(true));
         let (audio_receiver, thread_handle) =
-            stream_input(DeviceType::Output, 4096, new_run_flag.clone());
+            stream_input(DeviceType::Output, 4096, new_run_flag.clone(), &config.0);
         commands.insert_resource(AudioThreadFlag(new_run_flag));
         commands.insert_resource(AudioReceiver {
             receiver: Arc::new(Mutex::new(audio_receiver)),

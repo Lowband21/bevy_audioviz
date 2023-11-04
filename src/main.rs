@@ -7,6 +7,7 @@ use bevy::window::{PresentMode, WindowTheme};
 mod audio_capture;
 mod audio_processing;
 mod bar_material;
+mod cfg;
 mod circle_material;
 mod circle_split_material;
 mod polygon_material;
@@ -15,6 +16,7 @@ mod visualization;
 use crate::audio_capture::{audio_capture_startup_system, AudioReceiver};
 use crate::audio_processing::{audio_event_system, AudioVisualizerState};
 use crate::bar_material::{AudioEntity, AudioMaterial};
+use crate::cfg::*;
 use crate::circle_material::{CircleEntity, CircleMaterial};
 use crate::circle_split_material::{CircleSplitEntity, CircleSplitMaterial};
 use crate::polygon_material::{PolygonEntity, PolygonMaterial};
@@ -25,7 +27,16 @@ use crate::visualization::{
 const ARRAY_UNIFORM_SIZE: usize = 16;
 const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
 
+#[derive(Resource)]
+pub struct CfgResource(MyConfig);
+
 fn main() {
+    let config = confy::load("bevy_audioviz", "config").unwrap();
+    println!(
+        "Config file location: {:#?}",
+        confy::get_configuration_file_path("bevy_audioviz", "config").unwrap()
+    );
+    println!("{:?}", config);
     App::new()
         .add_plugins((DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -44,6 +55,7 @@ fn main() {
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(AudioVisualizerState::new(NUM_BUCKETS))
+        .insert_resource(CfgResource(config))
         .init_resource::<AudioReceiver>() // Initialize the `AudioReceiver` resource.
         .init_resource::<VisualizationType>()
         .add_systems(Startup, setup)
