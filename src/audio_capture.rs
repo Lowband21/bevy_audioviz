@@ -85,6 +85,10 @@ pub fn stream_input(
                     device = dev;
                     println!("Selected Device: {:#?}", device.name().unwrap());
                 }
+            } else {
+                println!(
+                    "No device configured, using default device, if you run into issues this is the first thing to do."
+                );
             }
         }
         println!("Spawned thread");
