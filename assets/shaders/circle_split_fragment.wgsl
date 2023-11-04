@@ -82,7 +82,7 @@ fn fragment(
     let audio_value = normalized_data[array_index][component_index];
 
     // Define a radius based on the audio_value
-    let radius = 0.1 + audio_value * 0.2;
+    let radius = 0.1 + audio_value * 0.15;
 
     // Calculate distance from the corrected UV coordinate to the center
     let distance_to_center = distance(center, uv_corrected);

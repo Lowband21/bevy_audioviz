@@ -11,6 +11,7 @@ bevy = {version = "0.11.3", features = ["dynamic_linking"] }
 cpal = "0.15.2"
 mpsc = "0.2.3"
 rustfft = "6.1.0"
+spectrum-analyzer = "1.5.0"
 
 # Enable max optimizations for dependencies, but not for our code:
 [profile.dev.package."*"]
