@@ -14,7 +14,10 @@ use std::thread::JoinHandle;
 use crate::visualization::VisualizationType;
 
 #[derive(Event, Debug)]
-pub struct AudioProcessedEvent(pub Vec<Vec<f32>>);
+pub struct AudioProcessedEvent {
+    pub left: Vec<Vec<f32>>,
+    pub right: Vec<Vec<f32>>,
+}
 
 #[derive(Debug)]
 pub enum DeviceType {
@@ -92,6 +95,8 @@ pub fn stream_input(
         let config_clone = config.clone();
         let supported_buffer_size: cpal::SupportedBufferSize =
             config_clone.buffer_size().to_owned();
+        let channels = config_clone.channels();
+        println!("Config used has {} channels", channels);
 
         let stream = device
             .build_input_stream(
@@ -101,7 +106,7 @@ pub fn stream_input(
                         // If the run flag is false, return early.
                         return;
                     }
-                    println!("Building audio event");
+                    //println!("Building audio event");
 
                     match supported_buffer_size {
                         cpal::SupportedBufferSize::Range { min, max } => {
@@ -110,8 +115,20 @@ pub fn stream_input(
                                 return;
                             }
                             let buffer: Vec<f32> = data.iter().cloned().collect();
-                            let audio_event =
-                                AudioProcessedEvent(buffer.chunks_exact(4).map(Vec::from).collect());
+                            let audio_event = AudioProcessedEvent {
+                                left: buffer
+                                    .chunks_exact(4)
+                                    .enumerate()
+                                    .filter(|&(i, _)| i % 2 == 0)
+                                    .map(|(_, sample)| Vec::from(sample))
+                                    .collect(),
+                                right: buffer
+                                    .chunks_exact(4)
+                                    .enumerate()
+                                    .filter(|&(i, _)| i % 2 != 0)
+                                    .map(|(_, sample)| Vec::from(sample))
+                                    .collect(),
+                            };
                             //println!("Buffer {:#?}", audio_event);
 
                             if sender.send(audio_event).is_err() {
