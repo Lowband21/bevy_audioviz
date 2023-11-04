@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use rustfft::{num_complex::Complex, FftPlanner};
 
 use crate::audio_capture::AudioReceiver;
 use crate::ARRAY_UNIFORM_SIZE;
@@ -11,6 +10,11 @@ use crate::circle_material::CircleMaterial;
 use crate::circle_split_material::CircleSplitMaterial;
 use crate::polygon_material::PolygonMaterial;
 use crate::VisualizationType;
+use spectrum_analyzer::windows::hann_window; // Import the window function
+
+use spectrum_analyzer::{
+    samples_fft_to_spectrum, scaling::divide_by_N_sqrt, FrequencyLimit, FrequencySpectrum,
+};
 
 #[derive(Resource)]
 pub struct AudioVisualizerState {
@@ -39,6 +43,10 @@ impl AudioVisualizerState {
     }
 }
 
+fn is_power_of_two(number: usize) -> bool {
+    number != 0 && (number & (number - 1)) == 0
+}
+
 // Entry function for the audio event system
 pub fn audio_event_system(
     audio_receiver: Res<AudioReceiver>,
@@ -55,138 +63,145 @@ pub fn audio_event_system(
 
         if window_size.x > 0.0 && window_size.y > 0.0 {
             if let Ok(audio_event) = audio_receiver.receiver.lock().unwrap().try_recv() {
-                let mut fft_planner = FftPlanner::new();
-                let mut input_size = audio_event.0.len();
-                // Calculate the next power of two
-                let power_of_two = input_size.next_power_of_two();
-                let fft = fft_planner.plan_fft_forward(power_of_two);
-
-                // Convert audio samples to complex numbers for FFT
-                let mut input: Vec<Complex<f32>> = audio_event
+                // Flatten the audio samples into a single Vec<f32>
+                let mut samples = audio_event
                     .0
                     .iter()
                     .flat_map(|vec| vec.iter())
-                    .map(|&sample| Complex::new(sample, 0.0))
-                    .collect();
+                    .cloned()
+                    .collect::<Vec<f32>>();
 
-                // Resize the input buffer with zeros to match the power of two size
-                input.resize(power_of_two, Complex::new(0.0, 0.0));
+                // Apply a window function to the samples
+                samples = hann_window(&samples);
 
-                // Apply a window function to the audio samples before FFT
-                apply_hann_window(&mut input);
+                // Ensure the sample length is a power of two, pad with zeroes if necessary
+                if !is_power_of_two(samples.len()) {
+                    let next_power_of_two = samples.len().next_power_of_two();
+                    samples.resize(next_power_of_two, 0.0);
+                }
 
-                // Perform FFT
-                fft.process(&mut input);
+                // Compute the frequency spectrum using the spectrum_analyzer crate
+                let spectrum_result = samples_fft_to_spectrum(
+                    &samples,                            // windowed samples
+                    44100, // Replace with the actual sample rate of your audio
+                    FrequencyLimit::Range(20., 20_000.), // Adjust the frequency range as needed
+                    Some(&divide_by_N_sqrt), // Normalization function
+                );
 
-                // Convert FFT output to magnitude and bucket into 32 ranges
-                let mut buckets = bucketize_fft_to_ranges(&input, NUM_BUCKETS, 48000);
-                buckets = buckets.iter().cloned().collect();
+                if let Ok(spectrum) = spectrum_result {
+                    // Transform the frequency spectrum into buckets for visualization
+                    let mut buckets = transform_spectrum_to_buckets(&spectrum, NUM_BUCKETS);
 
-                // Apply smoothing to the buckets
-                let smoothing = 2;
-                let smoothing_size = 4;
-                smooth(&mut buckets, smoothing, smoothing_size);
+                    // Apply smoothing to the buckets
+                    let smoothing = 2;
+                    let smoothing_size = 8;
+                    smooth(&mut buckets, smoothing, smoothing_size);
 
-                let amplification_factor = 1.5;
-                amplify_differences(&mut buckets, amplification_factor);
+                    let amplification_factor = 1.5;
+                    amplify_differences(&mut buckets, amplification_factor);
 
-                // Animate bucket transitions
-                let interpolation_factor = 0.5; // Adjust this value as needed
-                let animated_buckets =
-                    visualizer_state.animate_buckets(&buckets, interpolation_factor);
+                    // Animate the transition of buckets
+                    let interpolation_factor = 0.4; // Adjust this value as needed
+                    let animated_buckets =
+                        visualizer_state.animate_buckets(&buckets, interpolation_factor);
 
-                // Normalize animated buckets for visualization
-                let normalized_buckets = normalize_buckets(&animated_buckets);
+                    // Normalize the animated buckets for visualization
+                    let normalized_buckets = normalize_buckets(&animated_buckets);
 
-                // Update the material properties based on the visualization type
-                match *visualization_type {
-                    VisualizationType::Bar => {
-                        for (_, material) in bar_material.iter_mut() {
-                            material.normalized_data = normalized_buckets;
-                            material.viewport_width = window_size.x;
-                            material.viewport_height = window_size.y;
-                        }
-                    }
-                    VisualizationType::Circle => {
-                        for (_, material) in circle_material.iter_mut() {
-                            material.normalized_data = normalized_buckets;
-                            material.viewport_width = window_size.x;
-                            material.viewport_height = window_size.y;
-                        }
-                    }
-                    VisualizationType::CircleSplit => {
-                        for (_, material) in circle_split_material.iter_mut() {
-                            material.normalized_data = normalized_buckets;
-                            material.viewport_width = window_size.x;
-                            material.viewport_height = window_size.y;
-                        }
-                    }
-                    VisualizationType::Polygon => {
-                        for (_, material) in polygon_material.iter_mut() {
-                            material.normalized_data = normalized_buckets;
-                            material.viewport_width = window_size.x;
-                            material.viewport_height = window_size.y;
-                        }
-                    }
+                    // Update visualizer materials with normalized buckets
+                    update_visualizer_materials(
+                        &normalized_buckets,
+                        &window_size,
+                        &visualization_type,
+                        &mut bar_material,
+                        &mut circle_material,
+                        &mut circle_split_material,
+                        &mut polygon_material,
+                    );
+                } else {
+                    println!("Spectrum analysis failed");
                 }
             }
         }
     }
 }
 
-fn apply_hann_window(input: &mut Vec<Complex<f32>>) {
-    let len = input.len();
-    for (i, sample) in input.iter_mut().enumerate() {
-        let window_value =
-            0.5 * (1.0 - Float::cos(2.0 * std::f32::consts::PI * i as f32 / (len - 1) as f32));
-        *sample *= Complex::new(window_value, 0.0);
+fn update_visualizer_materials(
+    normalized_buckets: &[Vec4; ARRAY_UNIFORM_SIZE],
+    window_size: &Vec2,
+    visualization_type: &VisualizationType,
+    bar_material: &mut ResMut<Assets<AudioMaterial>>,
+    circle_material: &mut ResMut<Assets<CircleMaterial>>,
+    circle_split_material: &mut ResMut<Assets<CircleSplitMaterial>>,
+    polygon_material: &mut ResMut<Assets<PolygonMaterial>>,
+) {
+    match *visualization_type {
+        VisualizationType::Bar => {
+            for (_, material) in bar_material.iter_mut() {
+                material.normalized_data = *normalized_buckets;
+                material.viewport_width = window_size.x;
+                material.viewport_height = window_size.y;
+            }
+        }
+        VisualizationType::Circle => {
+            for (_, material) in circle_material.iter_mut() {
+                material.normalized_data = *normalized_buckets;
+                material.viewport_width = window_size.x;
+                material.viewport_height = window_size.y;
+            }
+        }
+        VisualizationType::CircleSplit => {
+            for (_, material) in circle_split_material.iter_mut() {
+                material.normalized_data = *normalized_buckets;
+                material.viewport_width = window_size.x;
+                material.viewport_height = window_size.y;
+            }
+        }
+        VisualizationType::Polygon => {
+            for (_, material) in polygon_material.iter_mut() {
+                material.normalized_data = *normalized_buckets;
+                material.viewport_width = window_size.x;
+                material.viewport_height = window_size.y;
+            }
+        }
     }
 }
-use rustfft::num_traits::Float; // Import the Float trait
 
-fn bucketize_fft_to_ranges(
-    input: &[Complex<f32>],
-    num_buckets: usize,
-    sample_rate: usize,
-) -> Vec<f32> {
+fn transform_spectrum_to_buckets(spectrum: &FrequencySpectrum, num_buckets: usize) -> Vec<f32> {
     let mut buckets = vec![0f32; num_buckets];
-    let half_len = input.len() / 2;
 
-    let min_log_freq = 20f32.log2(); // Log2 of 20 Hz
-    let max_log_freq = (sample_rate as f32 / 2.0).log2(); // Log2 of Nyquist frequency
-    let log_freq_range = max_log_freq - min_log_freq;
+    // Determine the logarithmic scale factor based on the max frequency
+    let max_frequency = spectrum.max_fr().val();
+    let min_frequency = spectrum.min_fr().val(); // Assume there's a min_fr() or set a reasonable minimum frequency like 20.0
+    let log_min_frequency = min_frequency.ln();
+    let log_max_frequency = max_frequency.ln();
 
-    // Calculate the boundaries of the buckets in the logarithmic scale
-    let bucket_boundaries: Vec<f32> = (0..=num_buckets)
-        .map(|i| min_log_freq + (log_freq_range * i as f32 / num_buckets as f32))
-        .collect();
+    for &(frequency, value) in spectrum.data() {
+        let freq_val = frequency.val();
 
-    // Iterate over the first half of the FFT output
-    for (i, bin) in input.iter().enumerate().take(half_len) {
-        let freq = i as f32 * sample_rate as f32 / input.len() as f32; // Frequency of the FFT bin
-        let log_freq = freq.log2();
-
-        // Find the bucket index for the logarithmic frequency
-        let bucket_index = bucket_boundaries
-            .iter()
-            .position(|&boundary| log_freq < boundary)
-            .unwrap_or(num_buckets);
-
-        if bucket_index < buckets.len() {
-            buckets[bucket_index] += bin.norm_sqr(); // Add squared magnitude to the bucket
+        // Skip frequencies lower than the minimum frequency (e.g., 20 Hz)
+        if freq_val < min_frequency {
+            continue;
         }
+
+        // Calculate the bucket index on a logarithmic scale
+        let log_freq = freq_val.ln();
+        let scale = (log_freq - log_min_frequency) / (log_max_frequency - log_min_frequency);
+        let bucket_index = (scale * (num_buckets as f32 - 1.0)) as usize;
+
+        // Add the magnitude to the appropriate bucket
+        buckets[bucket_index] += value.val();
     }
 
     buckets
 }
 
 fn normalize_buckets(buckets: &[f32]) -> [Vec4; ARRAY_UNIFORM_SIZE] {
-    // Assuming you have 32 buckets and 8 Vec4 elements, each Vec4 will hold values from 4 buckets.
     let max_value = buckets.iter().cloned().fold(f32::MIN, f32::max);
     let mut normalized_buckets = [Vec4::ZERO; ARRAY_UNIFORM_SIZE];
 
     for (i, &value) in buckets.iter().enumerate() {
-        let vec_index = i / 4; // This will give you indices 0 to 7 for 32 buckets
+        let vec_index = i / 4;
         let component_index = i % 4; // This will give you component indices 0 to 3
         if vec_index < normalized_buckets.len() {
             // Normalize and assign the bucket value to the corresponding Vec4 component
