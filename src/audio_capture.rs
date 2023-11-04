@@ -82,9 +82,13 @@ pub fn stream_input(
                     device = dev;
                     println!("Selected Device: {:#?}", device.name().unwrap());
                 }
+            } else {
+                println!(
+                    "No device configured, using default device, if you run into issues this is the first thing to do."
+                );
             }
         }
-        println!("Spawned thread");
+        //println!("Spawned thread");
 
         let config = device
             .default_output_config()
@@ -101,7 +105,7 @@ pub fn stream_input(
                         // If the run flag is false, return early.
                         return;
                     }
-                    println!("Building audio event");
+                    //println!("Building audio event");
 
                     match supported_buffer_size {
                         cpal::SupportedBufferSize::Range { min, max } => {
