@@ -17,10 +17,12 @@ impl Default for CircleSplitEntity {
 #[uuid = "a3dafd0f-45ef-4d05-9a78-e309a208859b"]
 pub struct CircleSplitMaterial {
     #[uniform(0)]
-    pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub left_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
     #[uniform(1)]
-    pub viewport_width: f32,
+    pub right_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
     #[uniform(2)]
+    pub viewport_width: f32,
+    #[uniform(3)]
     pub viewport_height: f32,
 }
 impl Material2d for CircleSplitMaterial {
@@ -35,7 +37,8 @@ pub fn prepare_circle_split_material(
     height: f32,
 ) -> Handle<CircleSplitMaterial> {
     let material = CircleSplitMaterial {
-        normalized_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
+        left_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
+        right_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         viewport_width: width,
         viewport_height: height,
     };

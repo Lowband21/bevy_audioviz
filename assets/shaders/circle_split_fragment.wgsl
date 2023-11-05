@@ -1,9 +1,11 @@
 @group(1) @binding(0)
-var<uniform> normalized_data: array<vec4<f32>, 16>;
-
+var<uniform> left_data: array<vec4<f32>, 16>;
 @group(1) @binding(1)
-var<uniform> viewport_width: f32;
+var<uniform> right_data: array<vec4<f32>, 16>;
+
 @group(1) @binding(2)
+var<uniform> viewport_width: f32;
+@group(1) @binding(3)
 var<uniform> viewport_height: f32;
 
 struct Globals {
@@ -79,7 +81,12 @@ fn fragment(
     let array_index = index / 4;
 
     // Extract the correct audio value from the normalized_data array
-    let audio_value = normalized_data[array_index][component_index];
+    var audio_value = 0.0;
+    if (uv.x > 0.5) {
+        audio_value = right_data[array_index][component_index];
+    } else {
+        audio_value = left_data[array_index][component_index];
+    }
 
     // Define a radius based on the audio_value
     let radius = 0.1 + audio_value * 0.15;
