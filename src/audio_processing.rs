@@ -86,7 +86,7 @@ pub fn audio_event_system(
                 let left_buckets = samples_to_buckets(left_samples, &mut visualizer_state, true).unwrap();
                 let right_buckets =
                     samples_to_buckets(right_samples, &mut visualizer_state, false).unwrap();
-                println!("{:#?}", right_buckets);
+                //println!("{:#?}", right_buckets);
 
                 // Update visualizer materials with normalized buckets
                 update_visualizer_materials(
@@ -121,9 +121,9 @@ fn samples_to_buckets(
     // Compute the frequency spectrum using the spectrum_analyzer crate
     let spectrum_result = samples_fft_to_spectrum(
         &samples,                            // windowed samples
-        44100,                               // Replace with the actual sample rate of your audio
+        48000,                               // Replace with the actual sample rate of your audio
         FrequencyLimit::Range(20., 20_000.), // Adjust the frequency range as needed
-        Some(&divide_by_N_sqrt),             // Normalization function
+        None//Some(&divide_by_N_sqrt),             // Normalization function
     );
 
     if let Ok(spectrum) = spectrum_result {
@@ -161,17 +161,30 @@ fn update_visualizer_materials(
     circle_split_material: &mut ResMut<Assets<CircleSplitMaterial>>,
     polygon_material: &mut ResMut<Assets<PolygonMaterial>>,
 ) {
-    match *visualization_type {
+    let mono_buckets = if needs_mono(visualization_type) {
+        mix_mono_channels(left_buckets, right_buckets)
+    } else {
+        *left_buckets
+    };
+
+    match visualization_type {
         VisualizationType::Bar => {
             for (_, material) in bar_material.iter_mut() {
-                material.normalized_data = *left_buckets;
+                material.normalized_data = mono_buckets;
                 material.viewport_width = window_size.x;
                 material.viewport_height = window_size.y;
             }
         }
         VisualizationType::Circle => {
             for (_, material) in circle_material.iter_mut() {
-                material.normalized_data = *left_buckets;
+                material.normalized_data = mono_buckets;
+                material.viewport_width = window_size.x;
+                material.viewport_height = window_size.y;
+            }
+        }
+        VisualizationType::Polygon => {
+            for (_, material) in polygon_material.iter_mut() {
+                material.normalized_data = mono_buckets;
                 material.viewport_width = window_size.x;
                 material.viewport_height = window_size.y;
             }
@@ -184,15 +197,24 @@ fn update_visualizer_materials(
                 material.viewport_height = window_size.y;
             }
         }
-        VisualizationType::Polygon => {
-            for (_, material) in polygon_material.iter_mut() {
-                material.normalized_data = *left_buckets;
-                material.viewport_width = window_size.x;
-                material.viewport_height = window_size.y;
-            }
-        }
     }
 }
+
+fn mix_mono_channels(
+    left_buckets: &[Vec4; ARRAY_UNIFORM_SIZE],
+    right_buckets: &[Vec4; ARRAY_UNIFORM_SIZE],
+) -> [Vec4; ARRAY_UNIFORM_SIZE] {
+    let mut mixed_buckets = [Vec4::ZERO; ARRAY_UNIFORM_SIZE];
+    for (i, (left, right)) in left_buckets.iter().zip(right_buckets.iter()).enumerate() {
+        mixed_buckets[i] = (*left + *right) * 0.5;
+    }
+    mixed_buckets
+}
+
+fn needs_mono(visualization_type: &VisualizationType) -> bool {
+    matches!(visualization_type, VisualizationType::Bar | VisualizationType::Circle | VisualizationType::Polygon)
+}
+
 
 fn transform_spectrum_to_buckets(spectrum: &FrequencySpectrum, num_buckets: usize) -> Vec<f32> {
     let mut buckets = vec![0f32; num_buckets];
