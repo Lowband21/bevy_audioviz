@@ -18,20 +18,28 @@ use spectrum_analyzer::{
 
 #[derive(Resource)]
 pub struct AudioVisualizerState {
-    previous_buckets: Vec<f32>,
+    previous_buckets_left: Vec<f32>,
+    previous_buckets_right: Vec<f32>,
 }
 
 impl AudioVisualizerState {
     pub fn new(num_buckets: usize) -> Self {
         AudioVisualizerState {
-            previous_buckets: vec![0.0; num_buckets],
+            previous_buckets_left: vec![0.0; num_buckets],
+            previous_buckets_right: vec![0.0; num_buckets],
         }
     }
 
-    fn animate_buckets(&mut self, current_buckets: &[f32], interpolation_factor: f32) -> Vec<f32> {
+    fn animate_buckets(&mut self, current_buckets: &[f32], interpolation_factor: f32, is_left_channel: bool) -> Vec<f32> {
+        let previous_buckets = if is_left_channel {
+            &mut self.previous_buckets_left
+        } else {
+            &mut self.previous_buckets_right
+        };
+
         let mut animated_buckets = Vec::with_capacity(current_buckets.len());
 
-        for (&current, previous) in current_buckets.iter().zip(self.previous_buckets.iter_mut()) {
+        for (&current, previous) in current_buckets.iter().zip(previous_buckets.iter_mut()) {
             // Interpolate between the previous bucket value and the current one
             let interpolated_value = *previous + (current - *previous) * interpolation_factor;
             animated_buckets.push(interpolated_value);
@@ -67,19 +75,18 @@ pub fn audio_event_system(
                 let left_samples = audio_event
                     .left
                     .iter()
-                    .flat_map(|vec| vec.iter())
                     .cloned()
                     .collect::<Vec<f32>>();
                 let right_samples = audio_event
                     .right
                     .iter()
-                    .flat_map(|vec| vec.iter())
                     .cloned()
                     .collect::<Vec<f32>>();
 
-                let left_buckets = samples_to_buckets(left_samples, &mut visualizer_state).unwrap();
+                let left_buckets = samples_to_buckets(left_samples, &mut visualizer_state, true).unwrap();
                 let right_buckets =
-                    samples_to_buckets(right_samples, &mut visualizer_state).unwrap();
+                    samples_to_buckets(right_samples, &mut visualizer_state, false).unwrap();
+                println!("{:#?}", right_buckets);
 
                 // Update visualizer materials with normalized buckets
                 update_visualizer_materials(
@@ -100,6 +107,7 @@ pub fn audio_event_system(
 fn samples_to_buckets(
     mut samples: Vec<f32>,
     mut visualizer_state: &mut ResMut<AudioVisualizerState>,
+    is_left_channel: bool,
 ) -> Option<[Vec4; ARRAY_UNIFORM_SIZE]> {
     // Apply a window function to the samples
     samples = hann_window(&samples);
@@ -132,7 +140,7 @@ fn samples_to_buckets(
 
         // Animate the transition of buckets
         let interpolation_factor = 0.4; // Adjust this value as needed
-        let animated_buckets = visualizer_state.animate_buckets(&buckets, interpolation_factor);
+        let animated_buckets = visualizer_state.animate_buckets(&buckets, interpolation_factor, is_left_channel);
 
         // Normalize the animated buckets for visualization
         let normalized_buckets = normalize_buckets(&animated_buckets);

@@ -1,6 +1,6 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use bevy::prelude::*;
 use bevy::sprite::Material2dPlugin;
-
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::window::{PresentMode, WindowTheme};
 
@@ -85,7 +85,6 @@ fn main() {
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
-
 /// This system toggles the vsync mode when pressing the button V.
 /// You'll see fps increase displayed in the console.
 fn toggle_vsync(input: Res<Input<KeyCode>>, mut windows: Query<&mut Window>) {

@@ -15,8 +15,8 @@ use crate::visualization::VisualizationType;
 
 #[derive(Event, Debug)]
 pub struct AudioProcessedEvent {
-    pub left: Vec<Vec<f32>>,
-    pub right: Vec<Vec<f32>>,
+    pub left: Vec<f32>,
+    pub right: Vec<f32>,
 }
 
 #[derive(Debug)]
@@ -119,21 +119,25 @@ pub fn stream_input(
                                 return;
                             }
                             let buffer: Vec<f32> = data.iter().cloned().collect();
-                            let audio_event = AudioProcessedEvent {
-                                left: buffer
-                                    .chunks_exact(4)
-                                    .enumerate()
-                                    .filter(|&(i, _)| i % 2 == 0)
-                                    .map(|(_, sample)| Vec::from(sample))
-                                    .collect(),
-                                right: buffer
-                                    .chunks_exact(4)
-                                    .enumerate()
-                                    .filter(|&(i, _)| i % 2 != 0)
-                                    .map(|(_, sample)| Vec::from(sample))
-                                    .collect(),
-                            };
+                            // Initialize vectors for left and right channels
+                            let mut left_channel = Vec::with_capacity(data.len() / 2);
+                            let mut right_channel = Vec::with_capacity(data.len() / 2);
+
+                            // Deinterlace the buffer into separate channels
+                            for chunk in data.chunks_exact(2) {
+                                if let [left_sample, right_sample] = *chunk {
+                                    left_channel.push(left_sample);
+                                    // Set the right channel to zero for testing
+                                    right_channel.push(right_sample);
+                                }
+                            }
                             //println!("Buffer {:#?}", audio_event);
+                            // Create the audio event with the deinterlaced channel data
+                            let audio_event = AudioProcessedEvent {
+                                left: left_channel,
+                                right: right_channel,
+                            };
+
 
                             if sender.send(audio_event).is_err() {
                                 eprintln!("The receiver has been dropped, terminating audio input stream.");
