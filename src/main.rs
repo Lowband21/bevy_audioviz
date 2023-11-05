@@ -12,6 +12,8 @@ mod circle_material;
 mod circle_split_material;
 mod polygon_material;
 mod visualization;
+mod ui;
+use crate::ui::UIPlugin;
 
 use crate::audio_capture::{audio_capture_startup_system, AudioReceiver};
 use crate::audio_processing::{audio_event_system, AudioVisualizerState};
@@ -23,6 +25,8 @@ use crate::polygon_material::{PolygonEntity, PolygonMaterial};
 use crate::visualization::{
     spawn_visualization, visualization_toggle_system, window_resized_event, VisualizationType,
 };
+
+use bevy_egui::EguiPlugin;
 
 const ARRAY_UNIFORM_SIZE: usize = 16;
 const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
@@ -52,8 +56,10 @@ fn main() {
             }),
             ..default()
         }),))
+        .add_plugins(EguiPlugin)
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(UIPlugin)
         .insert_resource(AudioVisualizerState::new(NUM_BUCKETS))
         .insert_resource(CfgResource(config))
         .init_resource::<AudioReceiver>() // Initialize the `AudioReceiver` resource.
