@@ -3,8 +3,6 @@
 ## Description
 This project is a real-time audio visualizer implemented in Rust using the Bevy game engine and the CPAL library for audio processing. It captures audio data, performs frequency analysis using the `spectrum-analyzer` crate, and then visualizes this data on a 2D canvas in a Bevy application using shaders.
 
-https://github.com/Lowband21/bevy_audioviz/assets/49757532/cdd2fd9f-e2dd-44bf-9b43-20ff91f614cf
-
 ![screenshot bar](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/assets/screenshot_bar.png)
 ![screenshot string](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/assets/screenshot_string.png)
 ![screenshot circle split](https://raw.githubusercontent.com/Lowband21/bevy_audioviz/master/assets/screenshot_circle_split.png)
