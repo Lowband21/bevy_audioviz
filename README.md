@@ -13,6 +13,7 @@ https://github.com/Lowband21/bevy_audioviz/assets/49757532/cdd2fd9f-e2dd-44bf-9b
 - Real-time audio capture from configurable input or output device.
 - Extreme low latency: Less than 0.5ms per frame with vsync disabled
 - Spectrum analysis visualizer with a focus on percieved accuracy.
+- Symmetric circle visualizer with separated channels
 - Configuarable smooth decay and interpolation of visualized data for aesthetic effect.
 - Automatic scaling of visualization to window resizing events.
 
@@ -31,6 +32,7 @@ To run the audio visualizer:
 
 ### Keybindings:
 | Key | Action |
+| --- | ------ |
 | Space | Switch Visualization |
 | V | Toggle VSync |
 
