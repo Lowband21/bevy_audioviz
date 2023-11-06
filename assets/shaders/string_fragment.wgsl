@@ -70,57 +70,6 @@ fn value_to_color(value: f32) -> vec4<f32> {
     return vec4<f32>(color, 1.0);
 }
 
-
-//@fragment
-//fn fragment(
-//    @builtin(position) coord: vec4<f32>,
-//    @location(0) world_position: vec4<f32>,
-//    @location(1) normals: vec3<f32>,
-//    @location(2) uv: vec2<f32>,
-//) -> @location(0) vec4<f32> {
-//    let aspect_ratio = viewport_width / viewport_height;
-//
-//    // Correct the UV coordinates by scaling the y-coordinate by the aspect ratio
-//    let uv_corrected = vec2<f32>(uv.x, uv.y / aspect_ratio);
-//
-//    // Calculate the index for accessing audio data
-//    let index = i32(abs((uv_corrected.x - 0.5) * 2.0) * 64.0);
-//
-//    // Calculate which component of vec4<f32> to use
-//    let component_index = index % 4;
-//    let array_index = index / 4;
-//
-//    // Extract the correct audio value from the normalized_data array
-//    var audio_value = 0.0;
-//    if (uv_corrected.x > 0.5) {
-//        audio_value = right_data[array_index][component_index];
-//    } else {
-//        audio_value = left_data[array_index][component_index];
-//    }
-//
-//    // Define the line's thickness
-//    let line_thickness = 0.001; // This can be adjusted as needed
-//
-//    // Calculate the distance of the current pixel from the line position
-//    let line_position = audio_value / 5.0 + 0.4;
-//    let distance_to_line = abs(uv_corrected.y - line_position);
-//
-//    // Determine if the current UV coordinate is within the line's thickness
-//    if (distance_to_line < line_thickness) {
-//        // Render the pixel if it falls within the line's thickness
-//        if (monochrome == 1u){
-//            return value_to_monochrome(audio_value);
-//        } else {
-//            return value_to_color(audio_value);
-//        }
-//    } else {
-//        return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Black color
-//    }
-//}
-
-
-
-
 @fragment
 fn fragment(
     @builtin(position) coord: vec4<f32>,
@@ -164,7 +113,7 @@ fn fragment(
     let radius = diameter * 0.5;
 
     // Calculate distance from the pixel to the section's center
-    let dist_to_center = distance(vec2<f32>(uv.x, uv.y), vec2<f32>(section_center_x, scaled_audio_value / aspect_ratio));
+    let dist_to_center = distance(vec2<f32>(uv_corrected.x, -uv_corrected.y), vec2<f32>(section_center_x, scaled_audio_value / aspect_ratio));
 
     // If the distance is within the circle's radius, color the pixel
     if (dist_to_center < radius) {
