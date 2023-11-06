@@ -10,6 +10,7 @@ use crate::circle_split_material::CircleSplitMaterial;
 use crate::polygon_material::PolygonMaterial;
 use crate::string_material::StringMaterial;
 use crate::VisualizationType;
+use crate::{CfgResource, MyConfig};
 use spectrum_analyzer::windows::hann_window; // Import the window function
 
 use spectrum_analyzer::{
@@ -70,6 +71,7 @@ pub fn audio_event_system(
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut visualizer_state: ResMut<AudioVisualizerState>,
     visualization_type: Res<VisualizationType>,
+    config: Res<CfgResource>,
 ) {
     if let Some(window) = primary_window.iter().next() {
         let window_size = Vec2::new(window.width(), window.height());
@@ -81,9 +83,15 @@ pub fn audio_event_system(
                 let right_samples = audio_event.right.iter().cloned().collect::<Vec<f32>>();
 
                 let left_buckets =
-                    samples_to_buckets(left_samples, &mut visualizer_state, true).unwrap();
-                let right_buckets =
-                    samples_to_buckets(right_samples, &mut visualizer_state, false).unwrap();
+                    samples_to_buckets(config.0.clone(), left_samples, &mut visualizer_state, true)
+                        .unwrap();
+                let right_buckets = samples_to_buckets(
+                    config.0.clone(),
+                    right_samples,
+                    &mut visualizer_state,
+                    false,
+                )
+                .unwrap();
                 //println!("{:#?}", right_buckets);
 
                 // Update visualizer materials with normalized buckets
@@ -103,6 +111,7 @@ pub fn audio_event_system(
 }
 
 fn samples_to_buckets(
+    config: MyConfig,
     mut samples: Vec<f32>,
     mut visualizer_state: &mut ResMut<AudioVisualizerState>,
     is_left_channel: bool,
@@ -118,9 +127,9 @@ fn samples_to_buckets(
 
     // Compute the frequency spectrum using the spectrum_analyzer crate
     let spectrum_result = samples_fft_to_spectrum(
-        &samples,                            // windowed samples
-        48000,                               // Replace with the actual sample rate of your audio
-        FrequencyLimit::Range(20., 20_000.), // Adjust the frequency range as needed
+        &samples,                                                          // windowed samples
+        48000, // Replace with the actual sample rate of your audio
+        FrequencyLimit::Range(config.frequency_min, config.frequency_max), // Adjust the frequency range as needed
         None, //Some(&divide_by_N_sqrt),             // Normalization function
     );
 
@@ -129,15 +138,15 @@ fn samples_to_buckets(
         let mut buckets = transform_spectrum_to_buckets(&spectrum, NUM_BUCKETS);
 
         // Apply smoothing to the buckets
-        let smoothing = 2;
-        let smoothing_size = 4;
+        let smoothing = config.smoothing;
+        let smoothing_size = config.smoothing_size;
         smooth(&mut buckets, smoothing, smoothing_size);
 
         //let amplification_factor = 1.5;
         //amplify_differences(&mut buckets, amplification_factor);
 
         // Animate the transition of buckets
-        let interpolation_factor = 0.6; // Adjust this value as needed
+        let interpolation_factor = config.interpolation_factor; // Adjust this value as needed
         let animated_buckets =
             visualizer_state.animate_buckets(&buckets, interpolation_factor, is_left_channel);
 

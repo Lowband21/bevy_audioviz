@@ -45,7 +45,7 @@ pub fn prepare_string_material(
         right_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         viewport_width: width,
         viewport_height: height,
-        monochrome: 1,
+        monochrome: 0,
         colors: [
             Vec4::new(0.0, 0.0, 1.0, 1.0),
             Vec4::new(0.0, 1.0, 0.0, 1.0),

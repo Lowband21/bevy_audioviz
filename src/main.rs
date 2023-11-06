@@ -34,6 +34,17 @@ const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
 #[derive(Resource)]
 pub struct CfgResource(MyConfig);
 
+#[derive(Resource)]
+pub struct GUIToggle {
+    pub active: bool,
+}
+
+impl Default for GUIToggle {
+    fn default() -> Self {
+        GUIToggle { active: false }
+    }
+}
+
 fn main() {
     let config = confy::load("bevy_audioviz", "config").unwrap();
     println!(
@@ -62,6 +73,7 @@ fn main() {
         .add_plugins(UIPlugin)
         .insert_resource(AudioVisualizerState::new(NUM_BUCKETS))
         .insert_resource(CfgResource(config))
+        .insert_resource(GUIToggle::default())
         .init_resource::<AudioReceiver>() // Initialize the `AudioReceiver` resource.
         .init_resource::<VisualizationType>()
         .add_systems(Startup, setup)
@@ -77,6 +89,7 @@ fn main() {
                 .before(spawn_visualization),
         )
         .add_systems(Update, toggle_vsync)
+        .add_systems(Update, toggle_gui)
         .init_resource::<AudioEntity>()
         .init_resource::<StringEntity>()
         .init_resource::<CircleSplitEntity>()
@@ -103,5 +116,12 @@ fn toggle_vsync(input: Res<Input<KeyCode>>, mut windows: Query<&mut Window>) {
             PresentMode::AutoVsync
         };
         info!("PRESENT_MODE: {:?}", window.present_mode);
+    }
+}
+
+fn toggle_gui(input: Res<Input<KeyCode>>, mut toggle: ResMut<GUIToggle>) {
+    if input.just_pressed(KeyCode::G) {
+        toggle.active = !toggle.active;
+        info!("GUI Toggled: {}", toggle.active);
     }
 }

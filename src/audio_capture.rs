@@ -44,10 +44,10 @@ impl FromWorld for AudioReceiver {
 
         let (audio_receiver, thread_handle) = if config.mic_mode {
             // Pass the run flag to the stream_input function
-            stream_input(DeviceType::Input, 4096, run_flag, &config)
+            stream_input(DeviceType::Input, run_flag, &config)
         } else {
             // Pass the run flag to the stream_input function
-            stream_input(DeviceType::Output, 4096, run_flag, &config)
+            stream_input(DeviceType::Output, run_flag, &config)
         };
 
         AudioReceiver {
@@ -62,7 +62,6 @@ impl FromWorld for AudioReceiver {
 pub struct AudioThreadFlag(pub Arc<AtomicBool>);
 pub fn stream_input(
     device_type: DeviceType,
-    buffer_size: usize,
     run_flag: Arc<AtomicBool>, // Accept the run flag as a parameter
     config: &MyConfig,
 ) -> (Receiver<AudioProcessedEvent>, JoinHandle<()>) {
@@ -71,9 +70,9 @@ pub fn stream_input(
     let config = config.clone();
 
     let thread_handle = thread::spawn(move || {
-        for host in cpal::available_hosts() {
-            println!("{:#?}", host);
-        }
+        //for host in cpal::available_hosts() {
+        //    println!("{:#?}", host);
+        //}
         let host = cpal::default_host();
 
         let devices = match device_type {
@@ -82,18 +81,15 @@ pub fn stream_input(
         };
 
         let mut device = host.default_output_device().unwrap();
+        println!("Placeholder");
 
-        for (device_index, dev) in devices.enumerate() {
-            println!("Device {}: {}", device_index, dev.name().unwrap());
-            if let Some(configured_device) = config.device.clone() {
+        if let Some(configured_device) = config.device.clone() {
+            for (device_index, dev) in devices.enumerate() {
+                //println!("Device {}: {}", device_index, dev.name().unwrap());
                 if dev.name().unwrap() == configured_device {
                     device = dev;
-                    println!("Selected Device: {:#?}", device.name().unwrap());
+                    println!("Selected Device: {}", device.name().unwrap());
                 }
-            } else {
-                println!(
-                    "No device configured, using default device, if you run into issues this is the first thing to do."
-                );
             }
         }
         //println!("Spawned thread");
@@ -218,10 +214,10 @@ pub fn audio_capture_startup_system(
 
         let (audio_receiver, thread_handle) = if config.0.mic_mode {
             // Pass the run flag to the stream_input function
-            stream_input(DeviceType::Input, 4096, new_run_flag.clone(), &config.0)
+            stream_input(DeviceType::Input, new_run_flag.clone(), &config.0)
         } else {
             // Pass the run flag to the stream_input function
-            stream_input(DeviceType::Output, 4096, new_run_flag.clone(), &config.0)
+            stream_input(DeviceType::Output, new_run_flag.clone(), &config.0)
         };
 
         commands.insert_resource(AudioThreadFlag(new_run_flag));

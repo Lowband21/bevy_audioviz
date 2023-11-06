@@ -120,6 +120,7 @@ fn value_to_color(value: f32) -> vec4<f32> {
 
 
 
+
 @fragment
 fn fragment(
     @builtin(position) coord: vec4<f32>,
@@ -129,58 +130,52 @@ fn fragment(
 ) -> @location(0) vec4<f32> {
     let aspect_ratio = viewport_width / viewport_height;
 
-    // Correct the UV coordinates by scaling the y-coordinate by the aspect ratio
-    let uv_corrected = vec2<f32>(uv.x, uv.y / aspect_ratio);
+    // Total number of circles
+    let num_circles: i32 = 128;
+    // Determine the size of each section for a circle
+    let section_width = 1.0 / f32(num_circles);
+    // Calculate the center of each section
+    let section_center_x = (floor(uv.x / section_width) + 0.5) * section_width;
 
-    // Calculate the indices for the audio data
-    let index = i32(abs((uv_corrected.x - 0.5) * 2.0) * 64.0);
-    let prev_index = max(index - 1, 0);
-    let next_index = min(index + 1, 63 * 4); // 64 sections in half-circle, each with 4 values
+    // Correct the UV coordinates for the aspect ratio
+    let uv_corrected = vec2<f32>(uv.x, -uv.y / aspect_ratio);
 
-    // Calculate which component of vec4<f32> to use for the current, previous, and next indices
+    // Calculate the index for the audio data based on the x-coordinate
+    let index = i32((abs(uv_corrected.x - 0.5) * 2.0) * f32(num_circles / 2)); // *2 because we have half as many data points as circles
+
+    // Determine which quarter of the vec4 to use
     let component_index = index % 4;
-    let prev_component_index = prev_index % 4;
-    let next_component_index = next_index % 4;
     let array_index = index / 4;
-    let prev_array_index = prev_index / 4;
-    let next_array_index = next_index / 4;
 
-    // Retrieve the previous, current, and next audio values for interpolation
-    var prev_audio_value = 0.0;
-    var current_audio_value = 0.0;
-    var next_audio_value = 0.0;
+    // Retrieve the current audio value
+    var audio_value = 0.0;
+    // Access the audio data from the appropriate array
     if (uv_corrected.x > 0.5) {
-        prev_audio_value = right_data[prev_array_index][prev_component_index];
-        current_audio_value = right_data[array_index][component_index];
-        next_audio_value = right_data[next_array_index][next_component_index];
+        audio_value = right_data[array_index][component_index];
     } else {
-        prev_audio_value = left_data[prev_array_index][prev_component_index];
-        current_audio_value = left_data[array_index][component_index];
-        next_audio_value = left_data[next_array_index][next_component_index];
+        audio_value = left_data[array_index][component_index];
     }
 
-    // Calculate the mix ratio for interpolation
-    let mix_ratio = fract(abs((uv_corrected.x - 0.5) * 2.0) * 64.0);
+    // Use the audio value to define the circle's vertical center and diameter
+    let scaled_audio_value = -(audio_value / 5.0) + 0.5;
+    // Map audio value to circle diameter, then calculate radius
+    let max_diameter = section_width; // Maximum diameter is the width of one section
+    let diameter = ((audio_value * 0.8) + 0.2) * max_diameter;
+    let radius = diameter * 0.5;
 
-    // Interpolate between the previous and next audio values to get the interpolated value
-    let audio_value = mix(prev_audio_value, next_audio_value, mix_ratio);
+    // Calculate distance from the pixel to the section's center
+    let dist_to_center = distance(vec2<f32>(uv.x, uv.y), vec2<f32>(section_center_x, scaled_audio_value / aspect_ratio));
 
-    // Scale and position the audio value for rendering
-    let audio_value_scaled = (audio_value / 5.0) + 0.4;
-
-    // Define the line's thickness
-    let line_thickness = 0.001; // Adjust this value for a thicker or thinner line
-
-    // Determine if the current UV coordinate is within the thickness of the line
-    if (abs(uv_corrected.y - audio_value_scaled) < line_thickness) {
-        // Return the color if the pixel falls within the line
+    // If the distance is within the circle's radius, color the pixel
+    if (dist_to_center < radius) {
         if (monochrome == 1u) {
             return value_to_monochrome(audio_value);
         } else {
             return value_to_color(audio_value);
         }
     } else {
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Black color for pixels outside the line
+        // If outside the radius, the pixel is not part of the circle
+        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
     }
 }
 

@@ -67,7 +67,7 @@ pub fn visualization_toggle_system(
         // Restart the audio thread with a new run flag
         let new_run_flag = Arc::new(AtomicBool::new(true));
         let (audio_receiver, thread_handle) =
-            stream_input(DeviceType::Output, 2048, new_run_flag.clone(), config);
+            stream_input(DeviceType::Output, new_run_flag.clone(), config);
         commands.insert_resource(AudioThreadFlag(new_run_flag));
         commands.insert_resource(AudioReceiver {
             receiver: Arc::new(Mutex::new(audio_receiver)),

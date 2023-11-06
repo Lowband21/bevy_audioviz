@@ -22,6 +22,10 @@ pub struct AudioMaterial {
     pub viewport_width: f32,
     #[uniform(2)]
     pub viewport_height: f32,
+    #[uniform(4)]
+    pub monochrome: u32,
+    #[uniform(5)]
+    pub colors: [Vec4; 4],
 }
 impl Material2d for AudioMaterial {
     fn fragment_shader() -> ShaderRef {
@@ -38,6 +42,13 @@ pub fn prepare_audio_material(
         normalized_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         viewport_width: width,
         viewport_height: height,
+        monochrome: 1,
+        colors: [
+            Vec4::new(0.0, 0.0, 1.0, 1.0),
+            Vec4::new(0.0, 1.0, 0.0, 1.0),
+            Vec4::new(1.0, 0.0, 0.0, 1.0),
+            Vec4::ZERO,
+        ],
     };
     materials.add(material)
 }
