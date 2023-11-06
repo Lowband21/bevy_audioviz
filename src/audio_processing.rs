@@ -6,9 +6,9 @@ use crate::ARRAY_UNIFORM_SIZE;
 use crate::NUM_BUCKETS;
 
 use crate::bar_material::AudioMaterial;
-use crate::circle_material::CircleMaterial;
 use crate::circle_split_material::CircleSplitMaterial;
 use crate::polygon_material::PolygonMaterial;
+use crate::string_material::StringMaterial;
 use crate::VisualizationType;
 use spectrum_analyzer::windows::hann_window; // Import the window function
 
@@ -64,7 +64,7 @@ fn is_power_of_two(number: usize) -> bool {
 pub fn audio_event_system(
     audio_receiver: Res<AudioReceiver>,
     mut bar_material: ResMut<Assets<AudioMaterial>>,
-    mut circle_material: ResMut<Assets<CircleMaterial>>,
+    mut string_material: ResMut<Assets<StringMaterial>>,
     mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
@@ -93,7 +93,7 @@ pub fn audio_event_system(
                     &window_size,
                     &visualization_type,
                     &mut bar_material,
-                    &mut circle_material,
+                    &mut string_material,
                     &mut circle_split_material,
                     &mut polygon_material,
                 );
@@ -156,7 +156,7 @@ fn update_visualizer_materials(
     window_size: &Vec2,
     visualization_type: &VisualizationType,
     bar_material: &mut ResMut<Assets<AudioMaterial>>,
-    circle_material: &mut ResMut<Assets<CircleMaterial>>,
+    string_material: &mut ResMut<Assets<StringMaterial>>,
     circle_split_material: &mut ResMut<Assets<CircleSplitMaterial>>,
     polygon_material: &mut ResMut<Assets<PolygonMaterial>>,
 ) {
@@ -174,9 +174,10 @@ fn update_visualizer_materials(
                 material.viewport_height = window_size.y;
             }
         }
-        VisualizationType::Circle => {
-            for (_, material) in circle_material.iter_mut() {
-                material.normalized_data = mono_buckets;
+        VisualizationType::String => {
+            for (_, material) in string_material.iter_mut() {
+                material.left_data = *left_buckets;
+                material.right_data = *right_buckets;
                 material.viewport_width = window_size.x;
                 material.viewport_height = window_size.y;
             }
@@ -213,7 +214,7 @@ fn mix_mono_channels(
 fn needs_mono(visualization_type: &VisualizationType) -> bool {
     matches!(
         visualization_type,
-        VisualizationType::Bar | VisualizationType::Circle | VisualizationType::Polygon
+        VisualizationType::Bar | VisualizationType::Polygon
     )
 }
 

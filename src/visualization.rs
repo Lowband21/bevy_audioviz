@@ -5,9 +5,9 @@ use bevy::window::{PrimaryWindow, WindowResized};
 use crate::audio_capture::AudioThreadFlag;
 use crate::audio_capture::{stream_input, DeviceType};
 use crate::bar_material::*;
-use crate::circle_material::*;
 use crate::circle_split_material::*;
 use crate::polygon_material::*;
+use crate::string_material::*;
 use crate::AudioReceiver;
 use crate::CfgResource;
 use std::sync::atomic::AtomicBool;
@@ -19,7 +19,7 @@ use std::thread::JoinHandle;
 #[derive(Resource)]
 pub enum VisualizationType {
     Bar,
-    Circle,
+    String,
     CircleSplit,
     Polygon,
 }
@@ -58,9 +58,9 @@ pub fn visualization_toggle_system(
         commands.remove_resource::<AudioReceiver>();
 
         *visualization_type = match *visualization_type {
-            VisualizationType::Bar => VisualizationType::Circle,
-            VisualizationType::Circle => VisualizationType::CircleSplit,
-            VisualizationType::CircleSplit => VisualizationType::Polygon,
+            VisualizationType::Bar => VisualizationType::String,
+            VisualizationType::String => VisualizationType::CircleSplit,
+            VisualizationType::CircleSplit => VisualizationType::Bar,
             VisualizationType::Polygon => VisualizationType::Bar,
         };
 
@@ -82,11 +82,11 @@ pub fn spawn_visualization(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>, // For meshes
     mut audio_material: ResMut<Assets<AudioMaterial>>,
-    mut circle_material: ResMut<Assets<CircleMaterial>>,
+    mut string_material: ResMut<Assets<StringMaterial>>,
     mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     mut audio_entity: ResMut<AudioEntity>,
-    mut circle_entity: ResMut<CircleEntity>,
+    mut string_entity: ResMut<StringEntity>,
     mut circle_split_entity: ResMut<CircleSplitEntity>,
     mut polygon_entity: ResMut<PolygonEntity>,
     visualization_type: Res<VisualizationType>,
@@ -108,7 +108,7 @@ pub fn spawn_visualization(
         if let Some(entity) = audio_entity.0.take() {
             commands.entity(entity).despawn();
         }
-        if let Some(entity) = circle_entity.0.take() {
+        if let Some(entity) = string_entity.0.take() {
             commands.entity(entity).despawn();
         }
         if let Some(entity) = circle_split_entity.0.take() {
@@ -133,14 +133,14 @@ pub fn spawn_visualization(
                         .id(),
                 );
             }
-            VisualizationType::Circle => {
-                let circle_material_handle =
-                    prepare_circle_material(&mut circle_material, window_size.x, window_size.y);
-                circle_entity.0 = Some(
+            VisualizationType::String => {
+                let string_material_handle =
+                    prepare_string_material(&mut string_material, window_size.x, window_size.y);
+                string_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
                             mesh: audio_mesh.clone(),
-                            material: circle_material_handle,
+                            material: string_material_handle,
                             transform: Transform::from_xyz(0.0, 0.0, 0.0),
                             ..Default::default()
                         })
@@ -190,11 +190,11 @@ pub fn window_resized_event(
     mut meshes: ResMut<Assets<Mesh>>, // For meshes
     visualization_type: Res<VisualizationType>,
     mut audio_material: ResMut<Assets<AudioMaterial>>,
-    mut circle_material: ResMut<Assets<CircleMaterial>>,
+    mut string_material: ResMut<Assets<StringMaterial>>,
     mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     mut audio_entity: ResMut<AudioEntity>,
-    mut circle_entity: ResMut<CircleEntity>,
+    mut string_entity: ResMut<StringEntity>,
     mut circle_split_entity: ResMut<CircleSplitEntity>,
     mut polygon_entity: ResMut<PolygonEntity>,
 ) {
@@ -228,18 +228,18 @@ pub fn window_resized_event(
                         .id(),
                 );
             }
-            VisualizationType::Circle => {
-                if let Some(entity) = circle_entity.0.take() {
+            VisualizationType::String => {
+                if let Some(entity) = string_entity.0.take() {
                     commands.entity(entity).despawn();
                 }
-                // Prepare and spawn a new circle visualizer entity.
-                let circle_material_handle =
-                    prepare_circle_material(&mut circle_material, event.width, event.height);
-                circle_entity.0 = Some(
+                // Prepare and spawn a new string visualizer entity.
+                let string_material_handle =
+                    prepare_string_material(&mut string_material, event.width, event.height);
+                string_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
                             mesh: Mesh2dHandle(mesh_handle),
-                            material: circle_material_handle,
+                            material: string_material_handle,
                             transform: Transform::from_xyz(0.0, 0.0, 0.0),
                             ..Default::default()
                         })

@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 
 use crate::bar_material::AudioMaterial;
-use crate::circle_material::CircleMaterial;
 use crate::circle_split_material::CircleSplitMaterial;
 use crate::polygon_material::PolygonMaterial;
+use crate::string_material::StringMaterial;
 use bevy::math::Vec4Swizzles;
 use bevy_egui::{egui, EguiContexts};
 

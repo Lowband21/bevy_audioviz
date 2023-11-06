@@ -1,27 +1,27 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy::sprite::Material2dPlugin;
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::window::{PresentMode, WindowTheme};
 
 mod audio_capture;
 mod audio_processing;
 mod bar_material;
 mod cfg;
-mod circle_material;
 mod circle_split_material;
 mod polygon_material;
-mod visualization;
+mod string_material;
 mod ui;
+mod visualization;
 use crate::ui::UIPlugin;
 
 use crate::audio_capture::{audio_capture_startup_system, AudioReceiver};
 use crate::audio_processing::{audio_event_system, AudioVisualizerState};
 use crate::bar_material::{AudioEntity, AudioMaterial};
 use crate::cfg::*;
-use crate::circle_material::{CircleEntity, CircleMaterial};
 use crate::circle_split_material::{CircleSplitEntity, CircleSplitMaterial};
 use crate::polygon_material::{PolygonEntity, PolygonMaterial};
+use crate::string_material::{StringEntity, StringMaterial};
 use crate::visualization::{
     spawn_visualization, visualization_toggle_system, window_resized_event, VisualizationType,
 };
@@ -78,11 +78,11 @@ fn main() {
         )
         .add_systems(Update, toggle_vsync)
         .init_resource::<AudioEntity>()
-        .init_resource::<CircleEntity>()
+        .init_resource::<StringEntity>()
         .init_resource::<CircleSplitEntity>()
         .init_resource::<PolygonEntity>()
         .add_plugins(Material2dPlugin::<AudioMaterial>::default())
-        .add_plugins(Material2dPlugin::<CircleMaterial>::default())
+        .add_plugins(Material2dPlugin::<StringMaterial>::default())
         .add_plugins(Material2dPlugin::<CircleSplitMaterial>::default())
         .add_plugins(Material2dPlugin::<PolygonMaterial>::default())
         .run();
