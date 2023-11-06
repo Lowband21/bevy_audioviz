@@ -56,37 +56,15 @@ fn fragment(
     @location(2) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
     //return vec4<f32>(uv.x, uv.y, 0.0, 1.0);
-    // Calculate the index for the audio data based on the uv.x coordinate
     var vec_index = i32(uv.x * 64.0);
-    // Ensure vec_index is within bounds
     vec_index = clamp(vec_index, 0, 63);
 
-    // Calculate which component of vec4 to use
+    // Calculate which component of vec4 and which array to use
+    let array_index = vec_index / 4;
     let component_index = vec_index % 4;
 
-    // Initialize audio_value
-    var audio_value: f32 = 0.0;
-
-    // Use a switch statement to avoid dynamic indexing
-    switch (vec_index / 4) {
-        case 0: {audio_value = normalized_data[0][component_index]; break;}
-        case 1: {audio_value = normalized_data[1][component_index]; break;}
-        case 2: {audio_value = normalized_data[2][component_index]; break;}
-        case 3: {audio_value = normalized_data[3][component_index]; break;}
-        case 4: {audio_value = normalized_data[4][component_index]; break;}
-        case 5: {audio_value = normalized_data[5][component_index]; break;}
-        case 6: {audio_value = normalized_data[6][component_index]; break;}
-        case 7: {audio_value = normalized_data[7][component_index]; break;}
-        case 8: {audio_value = normalized_data[8][component_index]; break;}
-        case 9: {audio_value = normalized_data[9][component_index]; break;}
-        case 10: {audio_value = normalized_data[10][component_index]; break;}
-        case 11: {audio_value = normalized_data[11][component_index]; break;}
-        case 12: {audio_value = normalized_data[12][component_index]; break;}
-        case 13: {audio_value = normalized_data[13][component_index]; break;}
-        case 14: {audio_value = normalized_data[14][component_index]; break;}
-        case 15: {audio_value = normalized_data[15][component_index]; break;}
-        default: {break;} // This should never happen as vec_index is clamped to 31
-    }
+    // Assuming normalized_data is a two-dimensional array declared as:
+    var audio_value: f32 = normalized_data[array_index][component_index];
 
     // Get the color based on the audio value
     let color = value_to_color(audio_value);
