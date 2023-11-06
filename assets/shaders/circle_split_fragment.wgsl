@@ -10,6 +10,9 @@ var<uniform> viewport_height: f32;
 @group(1) @binding(4)
 var<uniform> monochrome: u32;
 
+@group(1) @binding(5)
+var<uniform> colors: array<vec4<f32>, 4>;
+
 //@group(1) @binding(5)
 //var<uniform> color_start: vec4<f32>;
 //@group(1) @binding(6)
@@ -49,9 +52,9 @@ fn value_to_monochrome(value: f32) -> vec4<f32> {
 }
 fn value_to_color(value: f32) -> vec4<f32> {
     // Define start, middle, and end colors for the gradient
-    let start_color = vec3<f32>(0.0, 0.0, 1.0); // Blue
-    let middle_color = vec3<f32>(0.0, 1.0, 0.0); // Green
-    let end_color = vec3<f32>(1.0, 0.0, 0.0); // Red
+    let start_color = vec3<f32>(colors[0].x, colors[0].y, colors[0].z); // Blue
+    let middle_color = vec3<f32>(colors[1].x, colors[1].y, colors[1].z); // Green
+    let end_color = vec3<f32>(colors[2].x, colors[2].y, colors[2].z); // Red
 
     // Declare a variable for the color
     var color: vec3<f32>;

@@ -1,11 +1,11 @@
-
 use bevy::prelude::*;
 
-use bevy_egui::{egui, EguiContexts};
 use crate::bar_material::AudioMaterial;
 use crate::circle_material::CircleMaterial;
-use crate::polygon_material::PolygonMaterial;
 use crate::circle_split_material::CircleSplitMaterial;
+use crate::polygon_material::PolygonMaterial;
+use bevy::math::Vec4Swizzles;
+use bevy_egui::{egui, EguiContexts};
 
 #[derive(Default)]
 pub struct UIPlugin;
@@ -34,15 +34,20 @@ fn uniform_update_ui_system(
             material.1.monochrome = if monochrome { 1 } else { 0 };
 
             // Color editor for `color_start`
-            //let mut color_start = [material.1.color_start[0], material.1.color_start[1], material.1.color_start[2]];
-            //ui.color_edit_button_rgb(&mut color_start);
-            //material.1.color_start = [color_start[0], color_start[1], color_start[2], 1.0];
+            let mut color_start = material.1.colors[0].xyz().to_array();
+            ui.color_edit_button_rgb(&mut color_start);
+            material.1.colors[0] = Vec4::new(color_start[0], color_start[1], color_start[2], 1.0);
 
             //// Color editor for `color_middle`
-            //ui.color_edit_button_rgb(&mut material.1.color_middle);
+            let mut color_middle = material.1.colors[1].xyz().to_array();
+            ui.color_edit_button_rgb(&mut color_middle);
+            material.1.colors[1] =
+                Vec4::new(color_middle[0], color_middle[1], color_middle[2], 1.0);
 
             //// Color editor for `color_end`
-            //ui.color_edit_button_rgb(&mut material.1.color_end);
+            let mut color_end = material.1.colors[2].xyz().to_array();
+            ui.color_edit_button_rgb(&mut color_end);
+            material.1.colors[2] = Vec4::new(color_end[0], color_end[1], color_end[2], 1.0);
         }
     });
 }
