@@ -106,7 +106,7 @@ fn fragment(
     }
 
     // Use the audio value to define the circle's vertical center and diameter
-    let scaled_audio_value = -(audio_value / 5.0) + 0.5;
+    let scaled_audio_value = -(audio_value / 5.0) + 0.6;
     // Map audio value to circle diameter, then calculate radius
     let max_diameter = section_width; // Maximum diameter is the width of one section
     let diameter = ((audio_value * 0.8) + 0.2) * max_diameter;
