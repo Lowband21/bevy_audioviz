@@ -24,6 +24,16 @@ pub struct CircleSplitMaterial {
     pub viewport_width: f32,
     #[uniform(3)]
     pub viewport_height: f32,
+    #[uniform(4)]
+    pub monochrome: u32,
+    #[uniform(5)]
+    pub colors: [Vec4; 4],
+    //#[uniform(5)]
+    //pub color_start: [f32; 4],
+    //#[uniform(6)]
+    //pub color_middle: [f32; 3],
+    //#[uniform(7)]
+    //pub color_end: [f32; 3],
 }
 impl Material2d for CircleSplitMaterial {
     fn fragment_shader() -> ShaderRef {
@@ -41,6 +51,16 @@ pub fn prepare_circle_split_material(
         right_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         viewport_width: width,
         viewport_height: height,
+        monochrome: 1,
+        colors: [
+            Vec4::new(0.0, 0.0, 1.0, 1.0),
+            Vec4::new(0.0, 1.0, 0.0, 1.0),
+            Vec4::new(1.0, 0.0, 0.0, 1.0),
+            Vec4::ZERO,
+        ],
+        //color_start: [0f32; 4],
+        //color_middle: [0f32; 3],
+        //color_end: [0f32; 3],
     };
     materials.add(material)
 }
