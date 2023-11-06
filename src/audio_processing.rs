@@ -30,7 +30,12 @@ impl AudioVisualizerState {
         }
     }
 
-    fn animate_buckets(&mut self, current_buckets: &[f32], interpolation_factor: f32, is_left_channel: bool) -> Vec<f32> {
+    fn animate_buckets(
+        &mut self,
+        current_buckets: &[f32],
+        interpolation_factor: f32,
+        is_left_channel: bool,
+    ) -> Vec<f32> {
         let previous_buckets = if is_left_channel {
             &mut self.previous_buckets_left
         } else {
@@ -72,18 +77,11 @@ pub fn audio_event_system(
         if window_size.x > 0.0 && window_size.y > 0.0 {
             if let Ok(audio_event) = audio_receiver.receiver.lock().unwrap().try_recv() {
                 // Flatten the audio samples into a single Vec<f32>
-                let left_samples = audio_event
-                    .left
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<f32>>();
-                let right_samples = audio_event
-                    .right
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<f32>>();
+                let left_samples = audio_event.left.iter().cloned().collect::<Vec<f32>>();
+                let right_samples = audio_event.right.iter().cloned().collect::<Vec<f32>>();
 
-                let left_buckets = samples_to_buckets(left_samples, &mut visualizer_state, true).unwrap();
+                let left_buckets =
+                    samples_to_buckets(left_samples, &mut visualizer_state, true).unwrap();
                 let right_buckets =
                     samples_to_buckets(right_samples, &mut visualizer_state, false).unwrap();
                 //println!("{:#?}", right_buckets);
@@ -123,7 +121,7 @@ fn samples_to_buckets(
         &samples,                            // windowed samples
         48000,                               // Replace with the actual sample rate of your audio
         FrequencyLimit::Range(20., 20_000.), // Adjust the frequency range as needed
-        None//Some(&divide_by_N_sqrt),             // Normalization function
+        None, //Some(&divide_by_N_sqrt),             // Normalization function
     );
 
     if let Ok(spectrum) = spectrum_result {
@@ -132,15 +130,16 @@ fn samples_to_buckets(
 
         // Apply smoothing to the buckets
         let smoothing = 2;
-        let smoothing_size = 8;
+        let smoothing_size = 4;
         smooth(&mut buckets, smoothing, smoothing_size);
 
-        let amplification_factor = 1.5;
-        amplify_differences(&mut buckets, amplification_factor);
+        //let amplification_factor = 1.5;
+        //amplify_differences(&mut buckets, amplification_factor);
 
         // Animate the transition of buckets
-        let interpolation_factor = 0.4; // Adjust this value as needed
-        let animated_buckets = visualizer_state.animate_buckets(&buckets, interpolation_factor, is_left_channel);
+        let interpolation_factor = 0.6; // Adjust this value as needed
+        let animated_buckets =
+            visualizer_state.animate_buckets(&buckets, interpolation_factor, is_left_channel);
 
         // Normalize the animated buckets for visualization
         let normalized_buckets = normalize_buckets(&animated_buckets);
@@ -212,9 +211,11 @@ fn mix_mono_channels(
 }
 
 fn needs_mono(visualization_type: &VisualizationType) -> bool {
-    matches!(visualization_type, VisualizationType::Bar | VisualizationType::Circle | VisualizationType::Polygon)
+    matches!(
+        visualization_type,
+        VisualizationType::Bar | VisualizationType::Circle | VisualizationType::Polygon
+    )
 }
-
 
 fn transform_spectrum_to_buckets(spectrum: &FrequencySpectrum, num_buckets: usize) -> Vec<f32> {
     let mut buckets = vec![0f32; num_buckets];

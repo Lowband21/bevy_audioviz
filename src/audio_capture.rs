@@ -83,7 +83,8 @@ pub fn stream_input(
 
         let mut device = host.default_output_device().unwrap();
 
-        for (_device_index, dev) in devices.enumerate() {
+        for (device_index, dev) in devices.enumerate() {
+            println!("Device {}: {}", device_index, dev.name().unwrap());
             if let Some(configured_device) = config.device.clone() {
                 if dev.name().unwrap() == configured_device {
                     device = dev;
