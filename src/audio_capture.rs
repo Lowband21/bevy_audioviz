@@ -42,9 +42,13 @@ impl FromWorld for AudioReceiver {
 
         let config = world.get_resource::<CfgResource>().unwrap().0.clone();
 
-        // Pass the run flag to the stream_input function
-        let (audio_receiver, thread_handle) =
-            stream_input(DeviceType::Output, 4096, run_flag, &config);
+        let (audio_receiver, thread_handle) = if config.mic_mode {
+            // Pass the run flag to the stream_input function
+            stream_input(DeviceType::Input, 4096, run_flag, &config)
+        } else {
+            // Pass the run flag to the stream_input function
+            stream_input(DeviceType::Output, 4096, run_flag, &config)
+        };
 
         AudioReceiver {
             receiver: Arc::new(Mutex::new(audio_receiver)),
@@ -72,7 +76,7 @@ pub fn stream_input(
         }
         let host = cpal::default_host();
 
-        let mut devices = match device_type {
+        let devices = match device_type {
             DeviceType::Input => host.input_devices().expect("No default input device"),
             DeviceType::Output => host.output_devices().expect("No default output device"),
         };
@@ -93,9 +97,15 @@ pub fn stream_input(
         }
         //println!("Spawned thread");
 
-        let config = device
-            .default_output_config()
-            .expect("Failed to get default input config");
+        let config = match device_type {
+            DeviceType::Input => device
+                .default_input_config()
+                .expect("Failed to get default input config"),
+            DeviceType::Output => device
+                .default_output_config()
+                .expect("Failed to get default output config"),
+        };
+
         let config_clone = config.clone();
         let supported_buffer_size: cpal::SupportedBufferSize =
             config_clone.buffer_size().to_owned();
@@ -204,8 +214,15 @@ pub fn audio_capture_startup_system(
 
         // Restart the audio thread with a new run flag
         let new_run_flag = Arc::new(AtomicBool::new(true));
-        let (audio_receiver, thread_handle) =
-            stream_input(DeviceType::Output, 4096, new_run_flag.clone(), &config.0);
+
+        let (audio_receiver, thread_handle) = if config.0.mic_mode {
+            // Pass the run flag to the stream_input function
+            stream_input(DeviceType::Input, 4096, new_run_flag.clone(), &config.0)
+        } else {
+            // Pass the run flag to the stream_input function
+            stream_input(DeviceType::Output, 4096, new_run_flag.clone(), &config.0)
+        };
+
         commands.insert_resource(AudioThreadFlag(new_run_flag));
         commands.insert_resource(AudioReceiver {
             receiver: Arc::new(Mutex::new(audio_receiver)),
