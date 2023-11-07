@@ -84,7 +84,7 @@ pub fn stream_input(
         println!("Placeholder");
 
         if let Some(configured_device) = config.device.clone() {
-            for (device_index, dev) in devices.enumerate() {
+            for (_device_index, dev) in devices.enumerate() {
                 //println!("Device {}: {}", device_index, dev.name().unwrap());
                 if dev.name().unwrap() == configured_device {
                     device = dev;
@@ -125,7 +125,7 @@ pub fn stream_input(
                                 eprintln!("Buffer ({}) is outside of range: {}, {}", data.len(), min, max);
                                 return;
                             }
-                            let buffer: Vec<f32> = data.iter().cloned().collect();
+                            let _buffer: Vec<f32> = data.iter().cloned().collect();
                             // Initialize vectors for left and right channels
                             let mut left_channel = Vec::with_capacity(data.len() / 2);
                             let mut right_channel = Vec::with_capacity(data.len() / 2);
@@ -185,7 +185,7 @@ fn err_fn(err: cpal::StreamError) {
 // audio_capture_startup_system revised to avoid premature removal of AudioReceiver
 pub fn audio_capture_startup_system(
     mut commands: Commands,
-    mut audio_receiver_res: Option<ResMut<AudioReceiver>>,
+    audio_receiver_res: Option<ResMut<AudioReceiver>>,
     visualization_type: Res<VisualizationType>,
     audio_thread_flag: Option<Res<AudioThreadFlag>>,
     config: Res<CfgResource>,

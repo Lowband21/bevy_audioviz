@@ -13,7 +13,7 @@ impl Default for CircleSplitEntity {
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath)]
+#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "a3dafd0f-45ef-4d05-9a78-e309a208859b"]
 pub struct CircleSplitMaterial {
     #[uniform(0)]

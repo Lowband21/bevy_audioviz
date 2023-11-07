@@ -13,8 +13,8 @@ use crate::CfgResource;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::thread;
-use std::thread::JoinHandle;
+
+
 
 #[derive(Resource)]
 pub enum VisualizationType {

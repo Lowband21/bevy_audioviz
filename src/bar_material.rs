@@ -13,7 +13,7 @@ impl Default for AudioEntity {
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath)]
+#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "e71681d9-3499-4bba-881d-2eaeed7c1c31"]
 pub struct AudioMaterial {
     #[uniform(0)]

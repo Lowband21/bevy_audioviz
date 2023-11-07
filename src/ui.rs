@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::bar_material::AudioMaterial;
 use crate::circle_split_material::CircleSplitMaterial;
-use crate::polygon_material::PolygonMaterial;
+
 use crate::string_material::StringMaterial;
 use crate::CfgResource;
 use crate::GUIToggle;

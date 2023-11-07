@@ -14,7 +14,7 @@ use crate::{CfgResource, MyConfig};
 use spectrum_analyzer::windows::hann_window; // Import the window function
 
 use spectrum_analyzer::{
-    samples_fft_to_spectrum, scaling::divide_by_N_sqrt, FrequencyLimit, FrequencySpectrum,
+    samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum,
 };
 
 #[derive(Resource)]
@@ -113,7 +113,7 @@ pub fn audio_event_system(
 fn samples_to_buckets(
     config: MyConfig,
     mut samples: Vec<f32>,
-    mut visualizer_state: &mut ResMut<AudioVisualizerState>,
+    visualizer_state: &mut ResMut<AudioVisualizerState>,
     is_left_channel: bool,
 ) -> Option<[Vec4; ARRAY_UNIFORM_SIZE]> {
     // Apply a window function to the samples

@@ -13,7 +13,7 @@ impl Default for PolygonEntity {
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath)]
+#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "00adadef-a1e7-4601-9169-87493ce3fa5c"]
 pub struct PolygonMaterial {
     #[uniform(0)]

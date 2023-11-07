@@ -13,7 +13,7 @@ impl Default for StringEntity {
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath)]
+#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "fcf0ff0e-23f6-41f9-98a2-896a7407c235"]
 pub struct StringMaterial {
     #[uniform(0)]
