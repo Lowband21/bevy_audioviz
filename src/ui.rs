@@ -47,20 +47,35 @@ fn uniform_update_ui_system(
             ui.label("Smoothing Size:");
             ui.add(egui::Slider::new(&mut config.0.smoothing_size, 1..=10));
         });
-        let freq_max = config.0.frequency_max;
+
+// Determine the adjusted minimum and maximum values for the sliders
+        let adjusted_freq_min_max = if config.0.frequency_min + 512.0 > config.0.frequency_max {
+            config.0.frequency_min // If the max is too low, keep the min and adjust the max later
+        } else {
+            config.0.frequency_max - 512.0 // Otherwise, set the max limit for the min slider
+        };
+
+        let adjusted_freq_max_min = if config.0.frequency_max < config.0.frequency_min + 512.0 {
+            config.0.frequency_max // If the min is too high, keep the max and adjust the min later
+        } else {
+            config.0.frequency_min + 512.0 // Otherwise, set the min limit for the max slider
+        };
+
+        // Draw the slider for frequency_min
         ui.horizontal(|ui| {
             ui.label("Frequency Min:");
             ui.add(egui::Slider::new(
                 &mut config.0.frequency_min,
-                20.0..=freq_max - 100.0,
+                20.0..=adjusted_freq_min_max, // Use the adjusted max value for the min slider
             ));
         });
-        let freq_min = config.0.frequency_min;
+
+        // Draw the slider for frequency_max
         ui.horizontal(|ui| {
             ui.label("Frequency Max:");
             ui.add(egui::Slider::new(
                 &mut config.0.frequency_max,
-                freq_min + 100.0..=22_000.,
+                adjusted_freq_max_min..=22_000.0, // Use the adjusted min value for the max slider
             ));
         });
 
