@@ -70,6 +70,64 @@ fn value_to_color(value: f32) -> vec4<f32> {
     return vec4<f32>(color, 1.0);
 }
 
+//@fragment
+//fn fragment(
+//    @builtin(position) coord: vec4<f32>,
+//    @location(0) world_position: vec4<f32>,
+//    @location(1) normals: vec3<f32>,
+//    @location(2) uv: vec2<f32>,
+//) -> @location(0) vec4<f32> {
+//    let aspect_ratio = viewport_width / viewport_height;
+//
+//    // Total number of circles
+//    let num_circles: i32 = 128;
+//    // Determine the size of each section for a circle
+//    let section_width = 1.0 / f32(num_circles);
+//    // Calculate the center of each section
+//    let section_center_x = (floor(uv.x / section_width) + 0.5) * section_width;
+//
+//    // Correct the UV coordinates for the aspect ratio
+//    let uv_corrected = vec2<f32>(uv.x, -uv.y / aspect_ratio);
+//
+//    // Calculate the index for the audio data based on the x-coordinate
+//    let index = i32((abs(uv_corrected.x - 0.5) * 2.0) * f32(num_circles / 2)); // *2 because we have half as many data points as circles
+//
+//    // Determine which quarter of the vec4 to use
+//    let component_index = index % 4;
+//    let array_index = index / 4;
+//
+//    // Retrieve the current audio value
+//    var audio_value = 0.0;
+//    // Access the audio data from the appropriate array
+//    if (uv_corrected.x > 0.5) {
+//        audio_value = right_data[array_index][component_index];
+//    } else {
+//        audio_value = left_data[array_index][component_index];
+//    }
+//
+//    // Use the audio value to define the circle's vertical center and diameter
+//    let scaled_audio_value = -(audio_value / 5.0) + 0.6;
+//    // Map audio value to circle diameter, then calculate radius
+//    let max_diameter = section_width; // Maximum diameter is the width of one section
+//    let diameter = ((audio_value * 0.8) + 0.2) * max_diameter;
+//    let radius = diameter * 0.5;
+//
+//    // Calculate distance from the pixel to the section's center
+//    let dist_to_center = distance(vec2<f32>(uv_corrected.x, -uv_corrected.y), vec2<f32>(section_center_x, scaled_audio_value / aspect_ratio));
+//
+//    // If the distance is within the circle's radius, color the pixel
+//    if (dist_to_center < radius) {
+//        if (monochrome == 1u) {
+//            return value_to_monochrome(audio_value);
+//        } else {
+//            return value_to_color(audio_value);
+//        }
+//    } else {
+//        // If outside the radius, the pixel is not part of the circle
+//        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+//    }
+//}
+
 @fragment
 fn fragment(
     @builtin(position) coord: vec4<f32>,
@@ -79,23 +137,27 @@ fn fragment(
 ) -> @location(0) vec4<f32> {
     let aspect_ratio = viewport_width / viewport_height;
 
-    // Total number of circles
-    let num_circles: i32 = 128;
-    // Determine the size of each section for a circle
-    let section_width = 1.0 / f32(num_circles);
-    // Calculate the center of each section
-    let section_center_x = (floor(uv.x / section_width) + 0.5) * section_width;
+    // Variables for DNA visualization
+    let num_strands: i32 = 128; // Number of frequency strands per DNA string
+    let strand_spacing = 1.0 / f32(num_strands); // Space between strands
+    let time_scale = globals.time * 5.0; // Speed of the twist
 
-    // Correct the UV coordinates for the aspect ratio
-    let uv_corrected = vec2<f32>(uv.x, -uv.y / aspect_ratio);
+    // Calculate the normalized position of this fragment within the viewport
+    let uv_corrected = vec2<f32>(uv.x, uv.y);
 
-    // Calculate the index for the audio data based on the x-coordinate
-    let index = i32((abs(uv_corrected.x - 0.5) * 2.0) * f32(num_circles / 2)); // *2 because we have half as many data points as circles
+    // Set a base color for the DNA strands
+    var color: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+
+
+    // Calculate the horizontal offset for the twist
+    //let twist_offset = sin(uv_corrected.y * 3.141592 * f32(num_strands) + time_scale) * 0.5;
+
+    // Determine the left and right audio data for the current strand
+    let index = i32((abs(uv_corrected.x - 0.5) * 2.0) * f32(num_strands / 2)); // *2 because we have half as many data points as circles
 
     // Determine which quarter of the vec4 to use
     let component_index = index % 4;
     let array_index = index / 4;
-
     // Retrieve the current audio value
     var audio_value = 0.0;
     // Access the audio data from the appropriate array
@@ -105,26 +167,37 @@ fn fragment(
         audio_value = left_data[array_index][component_index];
     }
 
-    // Use the audio value to define the circle's vertical center and diameter
-    let scaled_audio_value = -(audio_value / 5.0) + 0.6;
-    // Map audio value to circle diameter, then calculate radius
-    let max_diameter = section_width; // Maximum diameter is the width of one section
-    let diameter = ((audio_value * 0.8) + 0.2) * max_diameter;
-    let radius = diameter * 0.5;
+    // Calculate the vertical position for each strand pair
+    let strand_x_pos = f32(index) * strand_spacing;
 
-    // Calculate distance from the pixel to the section's center
-    let dist_to_center = distance(vec2<f32>(uv_corrected.x, -uv_corrected.y), vec2<f32>(section_center_x, scaled_audio_value / aspect_ratio));
+    // Calculate the Y position for the strands based on audio data
+    let top_strand = 0.5 + audio_value * 0.1;
+    let bottom_strand = 0.5 - audio_value * 0.1;
 
-    // If the distance is within the circle's radius, color the pixel
-    if (dist_to_center < radius) {
+    // Calculate transparency based on the audio magnitude
+    let alpha = mix(0.1, 0.8, audio_value);
+
+    // Determine if the current fragment is within the strand
+    if (abs(uv_corrected.y - top_strand) < 0.001 || abs(uv_corrected.y - bottom_strand) < 0.001) {
+        // Set color for the upper strand
         if (monochrome == 1u) {
-            return value_to_monochrome(audio_value);
+            color =  value_to_monochrome(audio_value);
         } else {
-            return value_to_color(audio_value);
+            color =  value_to_color(audio_value);
         }
-    } else {
-        // If outside the radius, the pixel is not part of the circle
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+        //color = vec4<f32>(1.0, 1.0, 1.0, 1.0);
+        //color.a = alpha; // Apply transparency
+    } else if (uv_corrected.y < top_strand - 0.001 && uv_corrected.y > bottom_strand + 0.001) {
+        // Set color for the lower strand
+        if (monochrome == 1u) {
+            color =  value_to_monochrome(audio_value);
+        } else {
+            color =  value_to_color(audio_value);
+        }
+        color.a = alpha; // Apply transparency
+        
     }
-}
 
+    // Return the color for this fragment
+    return color;
+}
