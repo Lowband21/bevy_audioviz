@@ -44,7 +44,10 @@ impl Default for GUIToggle {
 }
 
 fn main() {
-    let config = confy::load("bevy_audioviz", "config").unwrap();
+    let config = match confy::load("bevy_audioviz", "config") {
+        Ok(config) => config,
+        Err(_) => MyConfig::default(),
+    };
     println!(
         "Config file location: {:#?}",
         confy::get_configuration_file_path("bevy_audioviz", "config").unwrap()

@@ -145,11 +145,7 @@ fn samples_to_buckets(
         //amplify_differences(&mut buckets, amplification_factor);
 
         // add a gate
-        gate(
-            &mut buckets,
-            config.upper_gate_threshold,
-            config.lower_gate_threshold,
-        );
+        gate(&mut buckets, config.gate_threshold);
 
         // Animate the transition of buckets
         let interpolation_factor = config.interpolation_factor; // Adjust this value as needed
@@ -165,12 +161,12 @@ fn samples_to_buckets(
     }
 }
 
-fn gate(buckets: &mut Vec<f32>, upper_gate_threshold: f32, mut lower_gate_threshold: f32) {
+fn gate(buckets: &mut Vec<f32>, mut gate_threshold: f32) {
     let mut max: &mut f32 = &mut 0.0;
     let len = buckets.len();
     let mut count = 0;
     for freq in buckets.iter_mut() {
-        if freq < &mut lower_gate_threshold {
+        if freq < &mut gate_threshold {
             count += 1;
         }
         if freq > max {
@@ -178,12 +174,12 @@ fn gate(buckets: &mut Vec<f32>, upper_gate_threshold: f32, mut lower_gate_thresh
         }
     }
     if count > len - (len / 8) {
-        let max = *max - upper_gate_threshold;
+        let max = *max - gate_threshold;
         for freq in buckets.iter_mut() {
             if *freq > max {
                 *freq = 0.0;
             }
-            if freq < &mut lower_gate_threshold {
+            if freq < &mut gate_threshold {
                 *freq = 0.0;
             }
         }

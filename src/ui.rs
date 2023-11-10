@@ -86,21 +86,9 @@ fn uniform_update_ui_system(
             ui.label("Smoothing Size:");
             ui.add(egui::Slider::new(&mut config.0.smoothing_size, 1..=10));
         });
-        //let upper_threshold = config.0.upper_gate_threshold;
-        //let lower_threshold = config.0.lower_gate_threshold;
         ui.horizontal(|ui| {
-            ui.label("Lower Gate Threshold:");
-            ui.add(egui::Slider::new(
-                &mut config.0.lower_gate_threshold,
-                0.0..=10.0,
-            ));
-        });
-        ui.horizontal(|ui| {
-            ui.label("Upper Gate Threshold:");
-            ui.add(egui::Slider::new(
-                &mut config.0.upper_gate_threshold,
-                0.0..=10.0,
-            ));
+            ui.label("Gate Threshold:");
+            ui.add(egui::Slider::new(&mut config.0.gate_threshold, 0.0..=10.0));
         });
 
         // Determine the adjusted minimum and maximum values for the sliders
