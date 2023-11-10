@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 
-use crate::bar_material::AudioMaterial;
-use crate::circle_split_material::CircleSplitMaterial;
+use crate::AudioMaterial;
+use crate::CircleSplitMaterial;
 use crate::PolygonMaterial;
 use crate::WaveMaterial;
 
-use crate::string_material::StringMaterial;
 use crate::CfgResource;
 use crate::GUIToggle;
+use crate::StringMaterial;
 //use bevy::math::Vec4Swizzles;
 use bevy_egui::{egui, EguiContexts};
 
@@ -35,20 +35,20 @@ impl Default for Colors {
             color_start: Color::Rgba {
                 red: 0.0,
                 green: 0.0,
-                blue: 1.0,
-                alpha: 0.9,
+                blue: 6.66,
+                alpha: 0.4,
             },
             color_middle: Color::Rgba {
                 red: 0.0,
-                green: 1.0,
-                blue: 0.0,
-                alpha: 0.9,
+                green: 0.12,
+                blue: 0.49,
+                alpha: 0.2,
             },
             color_end: Color::Rgba {
-                red: 1.0,
+                red: 0.29,
                 green: 0.0,
-                blue: 0.0,
-                alpha: 0.9,
+                blue: 1.0,
+                alpha: 1.0,
             },
         }
     }
@@ -85,6 +85,22 @@ fn uniform_update_ui_system(
         ui.horizontal(|ui| {
             ui.label("Smoothing Size:");
             ui.add(egui::Slider::new(&mut config.0.smoothing_size, 1..=10));
+        });
+        //let upper_threshold = config.0.upper_gate_threshold;
+        //let lower_threshold = config.0.lower_gate_threshold;
+        ui.horizontal(|ui| {
+            ui.label("Lower Gate Threshold:");
+            ui.add(egui::Slider::new(
+                &mut config.0.lower_gate_threshold,
+                0.0..=10.0,
+            ));
+        });
+        ui.horizontal(|ui| {
+            ui.label("Upper Gate Threshold:");
+            ui.add(egui::Slider::new(
+                &mut config.0.upper_gate_threshold,
+                0.0..=10.0,
+            ));
         });
 
         // Determine the adjusted minimum and maximum values for the sliders

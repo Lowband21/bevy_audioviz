@@ -8,27 +8,23 @@ use bevy_egui::EguiPlugin;
 
 mod audio_capture;
 mod audio_processing;
-mod bar_material;
 mod cfg;
-mod circle_split_material;
-mod polygon_material;
-mod string_material;
+mod materials;
 mod ui;
 mod visualization;
-mod wave_material;
 
 use crate::audio_capture::{audio_capture_startup_system, AudioReceiver};
 use crate::audio_processing::{audio_event_system, AudioVisualizerState};
-use crate::bar_material::{AudioEntity, AudioMaterial};
 use crate::cfg::*;
-use crate::circle_split_material::{CircleSplitEntity, CircleSplitMaterial};
-use crate::polygon_material::{PolygonEntity, PolygonMaterial};
-use crate::string_material::{StringEntity, StringMaterial};
+use crate::materials::{AudioEntity, AudioMaterial};
+use crate::materials::{CircleSplitEntity, CircleSplitMaterial};
+use crate::materials::{PolygonEntity, PolygonMaterial};
+use crate::materials::{StringEntity, StringMaterial};
+use crate::materials::{WaveEntity, WaveMaterial};
 use crate::ui::{Colors, UIPlugin};
 use crate::visualization::{
     spawn_visualization, visualization_toggle_system, window_resized_event, VisualizationType,
 };
-use crate::wave_material::{WaveEntity, WaveMaterial};
 
 const ARRAY_UNIFORM_SIZE: usize = 16;
 const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;

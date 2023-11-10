@@ -5,11 +5,9 @@ use crate::audio_capture::AudioReceiver;
 use crate::ARRAY_UNIFORM_SIZE;
 use crate::NUM_BUCKETS;
 
-use crate::bar_material::AudioMaterial;
-use crate::circle_split_material::CircleSplitMaterial;
-use crate::polygon_material::PolygonMaterial;
-use crate::string_material::StringMaterial;
-use crate::wave_material::WaveMaterial;
+use crate::materials::{
+    AudioMaterial, CircleSplitMaterial, PolygonMaterial, StringMaterial, WaveMaterial,
+};
 use crate::VisualizationType;
 use crate::{CfgResource, MyConfig};
 use spectrum_analyzer::windows::hann_window; // Import the window function
@@ -146,6 +144,13 @@ fn samples_to_buckets(
         //let amplification_factor = 1.5;
         //amplify_differences(&mut buckets, amplification_factor);
 
+        // add a gate
+        gate(
+            &mut buckets,
+            config.upper_gate_threshold,
+            config.lower_gate_threshold,
+        );
+
         // Animate the transition of buckets
         let interpolation_factor = config.interpolation_factor; // Adjust this value as needed
         let animated_buckets =
@@ -158,6 +163,31 @@ fn samples_to_buckets(
         println!("Spectrum analysis failed");
         None
     }
+}
+
+fn gate(buckets: &mut Vec<f32>, upper_gate_threshold: f32, mut lower_gate_threshold: f32) {
+    let mut max: &mut f32 = &mut 0.0;
+    let len = buckets.len();
+    let mut count = 0;
+    for freq in buckets.iter_mut() {
+        if freq < &mut lower_gate_threshold {
+            count += 1;
+        }
+        if freq > max {
+            max = freq;
+        }
+    }
+    if count > len - (len / 8) {
+        let max = *max - upper_gate_threshold;
+        for freq in buckets.iter_mut() {
+            if *freq > max {
+                *freq = 0.0;
+            }
+            if freq < &mut lower_gate_threshold {
+                *freq = 0.0;
+            }
+        }
+    };
 }
 
 fn update_visualizer_materials(
