@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::utils::Duration;
 use bevy::window::PrimaryWindow;
 
 use crate::audio_capture::AudioReceiver;
@@ -33,6 +34,7 @@ impl AudioVisualizerState {
         current_buckets: &[f32],
         interpolation_factor: f32,
         is_left_channel: bool,
+        config: &MyConfig,
     ) -> Vec<f32> {
         let previous_buckets = if is_left_channel {
             &mut self.previous_buckets_left
@@ -42,12 +44,16 @@ impl AudioVisualizerState {
 
         let mut animated_buckets = Vec::with_capacity(current_buckets.len());
 
-        for (&current, previous) in current_buckets.iter().zip(previous_buckets.iter_mut()) {
-            // Interpolate between the previous bucket value and the current one
-            let interpolated_value = *previous + (current - *previous) * interpolation_factor;
-            animated_buckets.push(interpolated_value);
-            // Update the previous value for the next frame
-            *previous = interpolated_value;
+        if current_buckets.iter().fold(0.0, |sum, &val| sum + val) <= config.gate_threshold {
+            animated_buckets = vec![0.0; current_buckets.len()];
+        } else {
+            for (&current, previous) in current_buckets.iter().zip(previous_buckets.iter_mut()) {
+                // Interpolate between the previous bucket value and the current one
+                let interpolated_value = *previous + (current - *previous) * interpolation_factor;
+                animated_buckets.push(interpolated_value);
+                // Update the previous value for the next frame
+                *previous = interpolated_value;
+            }
         }
 
         animated_buckets
@@ -75,7 +81,12 @@ pub fn audio_event_system(
         let window_size = Vec2::new(window.width(), window.height());
 
         if window_size.x > 0.0 && window_size.y > 0.0 {
-            if let Ok(audio_event) = audio_receiver.receiver.lock().unwrap().try_recv() {
+            if let Ok(audio_event) = audio_receiver
+                .receiver
+                .lock()
+                .unwrap()
+                .recv_timeout(Duration::new(0, 100))
+            {
                 // Flatten the audio samples into a single Vec<f32>
                 let left_samples = audio_event.left.iter().cloned().collect::<Vec<f32>>();
                 let right_samples = audio_event.right.iter().cloned().collect::<Vec<f32>>();
@@ -105,6 +116,32 @@ pub fn audio_event_system(
                     &mut wave_material,
                 );
             }
+            //else {
+            //    let left_samples = vec![0.0; 128];
+            //    let right_samples = vec![0.0; 128];
+            //    let left_buckets =
+            //        samples_to_buckets(config.0.clone(), left_samples, &mut visualizer_state, true)
+            //            .unwrap();
+            //    let right_buckets = samples_to_buckets(
+            //        config.0.clone(),
+            //        right_samples,
+            //        &mut visualizer_state,
+            //        false,
+            //    )
+            //    .unwrap();
+            //    // Update visualizer materials with normalized buckets
+            //    update_visualizer_materials(
+            //        &left_buckets,
+            //        &right_buckets,
+            //        &window_size,
+            //        &visualization_type,
+            //        &mut bar_material,
+            //        &mut string_material,
+            //        &mut circle_split_material,
+            //        &mut polygon_material,
+            //        &mut wave_material,
+            //    );
+            //}
         }
     }
 }
@@ -149,8 +186,12 @@ fn samples_to_buckets(
 
         // Animate the transition of buckets
         let interpolation_factor = config.interpolation_factor; // Adjust this value as needed
-        let animated_buckets =
-            visualizer_state.animate_buckets(&buckets, interpolation_factor, is_left_channel);
+        let animated_buckets = visualizer_state.animate_buckets(
+            &buckets,
+            interpolation_factor,
+            is_left_channel,
+            &config,
+        );
 
         // Normalize the animated buckets for visualization
         let normalized_buckets = normalize_buckets(&animated_buckets);
@@ -161,29 +202,30 @@ fn samples_to_buckets(
     }
 }
 
-fn gate(buckets: &mut Vec<f32>, mut gate_threshold: f32) {
-    let mut max: &mut f32 = &mut 0.0;
+fn gate(buckets: &mut Vec<f32>, gate_threshold: f32) {
     let len = buckets.len();
     let mut count = 0;
-    for freq in buckets.iter_mut() {
-        if freq < &mut gate_threshold {
+    let mut max = f32::MIN;
+
+    // Find the count of elements below the threshold and the maximum value
+    for freq in buckets.iter() {
+        if *freq < gate_threshold {
             count += 1;
         }
-        if freq > max {
-            max = freq;
+        if *freq > max {
+            max = *freq;
         }
     }
+
+    // If the count is greater than the specified threshold, modify the vector
     if count > len - (len / 8) {
-        let max = *max - gate_threshold;
+        let threshold = max - gate_threshold;
         for freq in buckets.iter_mut() {
-            if *freq > max {
-                *freq = 0.0;
-            }
-            if freq < &mut gate_threshold {
+            if *freq > threshold || *freq < gate_threshold {
                 *freq = 0.0;
             }
         }
-    };
+    }
 }
 
 fn update_visualizer_materials(

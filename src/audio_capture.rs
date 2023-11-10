@@ -168,7 +168,7 @@ pub fn stream_input(
 
         // Loop until the run flag is set to false.
         while run_flag.load(Ordering::SeqCst) {
-            thread::sleep(std::time::Duration::from_millis(10));
+            thread::sleep(std::time::Duration::from_millis(1));
         }
 
         // Perform any necessary cleanup here, if required

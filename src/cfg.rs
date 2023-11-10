@@ -25,7 +25,7 @@ impl ::std::default::Default for MyConfig {
             smoothing: 2,
             smoothing_size: 4,
             interpolation_factor: 0.6,
-            gate_threshold: 0.8,
+            gate_threshold: 0.1,
         }
     }
 }
