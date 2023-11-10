@@ -3,6 +3,8 @@ use bevy::reflect::{TypePath, TypeUuid};
 use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::sprite::Material2d;
 
+use crate::Colors;
+
 use crate::ARRAY_UNIFORM_SIZE;
 
 #[derive(Resource)]
@@ -37,16 +39,32 @@ pub fn prepare_audio_material(
     materials: &mut ResMut<Assets<AudioMaterial>>,
     width: f32,
     height: f32,
+    colors: &Colors,
 ) -> Handle<AudioMaterial> {
     let material = AudioMaterial {
         normalized_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         viewport_width: width,
         viewport_height: height,
-        monochrome: 1,
+        monochrome: if colors.monochrome { 1 } else { 0 },
         colors: [
-            Vec4::new(0.0, 0.0, 1.0, 1.0),
-            Vec4::new(0.0, 1.0, 0.0, 1.0),
-            Vec4::new(1.0, 0.0, 0.0, 1.0),
+            Vec4::new(
+                colors.color_start.r(),
+                colors.color_start.g(),
+                colors.color_start.b(),
+                colors.color_start.a(),
+            ),
+            Vec4::new(
+                colors.color_middle.r(),
+                colors.color_middle.g(),
+                colors.color_middle.b(),
+                colors.color_middle.a(),
+            ),
+            Vec4::new(
+                colors.color_end.r(),
+                colors.color_end.g(),
+                colors.color_end.b(),
+                colors.color_end.a(),
+            ),
             Vec4::ZERO,
         ],
     };

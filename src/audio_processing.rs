@@ -9,13 +9,12 @@ use crate::bar_material::AudioMaterial;
 use crate::circle_split_material::CircleSplitMaterial;
 use crate::polygon_material::PolygonMaterial;
 use crate::string_material::StringMaterial;
+use crate::wave_material::WaveMaterial;
 use crate::VisualizationType;
 use crate::{CfgResource, MyConfig};
 use spectrum_analyzer::windows::hann_window; // Import the window function
 
-use spectrum_analyzer::{
-    samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum,
-};
+use spectrum_analyzer::{samples_fft_to_spectrum, FrequencyLimit, FrequencySpectrum};
 
 #[derive(Resource)]
 pub struct AudioVisualizerState {
@@ -68,6 +67,7 @@ pub fn audio_event_system(
     mut string_material: ResMut<Assets<StringMaterial>>,
     mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut polygon_material: ResMut<Assets<PolygonMaterial>>,
+    mut wave_material: ResMut<Assets<WaveMaterial>>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut visualizer_state: ResMut<AudioVisualizerState>,
     visualization_type: Res<VisualizationType>,
@@ -104,6 +104,7 @@ pub fn audio_event_system(
                     &mut string_material,
                     &mut circle_split_material,
                     &mut polygon_material,
+                    &mut wave_material,
                 );
             }
         }
@@ -168,6 +169,7 @@ fn update_visualizer_materials(
     string_material: &mut ResMut<Assets<StringMaterial>>,
     circle_split_material: &mut ResMut<Assets<CircleSplitMaterial>>,
     polygon_material: &mut ResMut<Assets<PolygonMaterial>>,
+    wave_material: &mut ResMut<Assets<WaveMaterial>>,
 ) {
     let mono_buckets = if needs_mono(visualization_type) {
         mix_mono_channels(left_buckets, right_buckets)
@@ -191,17 +193,25 @@ fn update_visualizer_materials(
                 material.viewport_height = window_size.y;
             }
         }
-        VisualizationType::Polygon => {
-            for (_, material) in polygon_material.iter_mut() {
-                material.normalized_data = mono_buckets;
-                material.viewport_width = window_size.x;
-                material.viewport_height = window_size.y;
-            }
-        }
         VisualizationType::CircleSplit => {
             for (_, material) in circle_split_material.iter_mut() {
                 material.left_data = *left_buckets;
                 material.right_data = *right_buckets;
+                material.viewport_width = window_size.x;
+                material.viewport_height = window_size.y;
+            }
+        }
+        VisualizationType::Wave => {
+            for (_, material) in wave_material.iter_mut() {
+                material.left_data = *left_buckets;
+                material.right_data = *right_buckets;
+                material.viewport_width = window_size.x;
+                material.viewport_height = window_size.y;
+            }
+        }
+        VisualizationType::Polygon => {
+            for (_, material) in polygon_material.iter_mut() {
+                material.normalized_data = mono_buckets;
                 material.viewport_width = window_size.x;
                 material.viewport_height = window_size.y;
             }
@@ -292,17 +302,5 @@ fn smooth(buffer: &mut Vec<f32>, smoothing: u32, smoothing_size: u32) {
             }
             buffer[i] = weighted_sum / weight_sum;
         }
-    }
-}
-
-fn amplify_differences(buckets: &mut Vec<f32>, factor: f32) {
-    // Ensure the factor is positive to avoid complex numbers
-    let positive_factor = factor.abs();
-
-    // Apply the amplification factor to each bucket
-    for value in buckets.iter_mut() {
-        // Apply a power function to amplify differences
-        // The factor determines the degree of amplification
-        *value = value.powf(positive_factor);
     }
 }

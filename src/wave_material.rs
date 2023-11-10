@@ -8,16 +8,16 @@ use crate::ARRAY_UNIFORM_SIZE;
 use crate::Colors;
 
 #[derive(Resource)]
-pub struct CircleSplitEntity(pub Option<Entity>);
-impl Default for CircleSplitEntity {
+pub struct WaveEntity(pub Option<Entity>);
+impl Default for WaveEntity {
     fn default() -> Self {
-        CircleSplitEntity(None)
+        WaveEntity(None)
     }
 }
 
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
-#[uuid = "a3dafd0f-45ef-4d05-9a78-e309a208859b"]
-pub struct CircleSplitMaterial {
+#[uuid = "041f0757-9037-4a1e-8489-f738084ecec4"]
+pub struct WaveMaterial {
     #[uniform(0)]
     pub left_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
     #[uniform(1)]
@@ -31,19 +31,19 @@ pub struct CircleSplitMaterial {
     #[uniform(5)]
     pub colors: [Vec4; 4],
 }
-impl Material2d for CircleSplitMaterial {
+impl Material2d for WaveMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/circle_split_fragment.wgsl".into()
+        "shaders/wave_fragment.wgsl".into()
     }
 }
 //a Mandelbrot material with the given uniforms.
-pub fn prepare_circle_split_material(
-    materials: &mut ResMut<Assets<CircleSplitMaterial>>,
+pub fn prepare_wave_material(
+    materials: &mut ResMut<Assets<WaveMaterial>>,
     width: f32,
     height: f32,
     colors: &Colors,
-) -> Handle<CircleSplitMaterial> {
-    let material = CircleSplitMaterial {
+) -> Handle<WaveMaterial> {
+    let material = WaveMaterial {
         left_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         right_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         viewport_width: width,
@@ -70,9 +70,6 @@ pub fn prepare_circle_split_material(
             ),
             Vec4::ZERO,
         ],
-        //color_start: [0f32; 4],
-        //color_middle: [0f32; 3],
-        //color_end: [0f32; 3],
     };
     materials.add(material)
 }

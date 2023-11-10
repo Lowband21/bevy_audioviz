@@ -8,13 +8,13 @@ use crate::bar_material::*;
 use crate::circle_split_material::*;
 use crate::polygon_material::*;
 use crate::string_material::*;
+use crate::wave_material::*;
 use crate::AudioReceiver;
 use crate::CfgResource;
+use crate::Colors;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-
-
 
 #[derive(Resource)]
 pub enum VisualizationType {
@@ -22,6 +22,7 @@ pub enum VisualizationType {
     String,
     CircleSplit,
     Polygon,
+    Wave,
 }
 
 impl Default for VisualizationType {
@@ -60,7 +61,8 @@ pub fn visualization_toggle_system(
         *visualization_type = match *visualization_type {
             VisualizationType::Bar => VisualizationType::String,
             VisualizationType::String => VisualizationType::CircleSplit,
-            VisualizationType::CircleSplit => VisualizationType::Bar,
+            VisualizationType::CircleSplit => VisualizationType::Wave,
+            VisualizationType::Wave => VisualizationType::Polygon,
             VisualizationType::Polygon => VisualizationType::Bar,
         };
 
@@ -82,27 +84,37 @@ pub fn spawn_visualization(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>, // For meshes
     mut audio_material: ResMut<Assets<AudioMaterial>>,
-    mut string_material: ResMut<Assets<StringMaterial>>,
-    mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
-    mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     mut audio_entity: ResMut<AudioEntity>,
+    mut string_material: ResMut<Assets<StringMaterial>>,
     mut string_entity: ResMut<StringEntity>,
+    mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut circle_split_entity: ResMut<CircleSplitEntity>,
+    mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     mut polygon_entity: ResMut<PolygonEntity>,
+    mut wave_material: ResMut<Assets<WaveMaterial>>,
+    mut wave_entity: ResMut<WaveEntity>,
     visualization_type: Res<VisualizationType>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
+    colors: Res<Colors>,
 ) {
     if visualization_type.is_changed() {
         println!("Fractal Type Changed");
 
         // Variable setup
+        let colors = colors.into_inner();
         let window = primary_window.single();
         let window_size = Vec2::new(window.width(), window.height());
+        let polygon_window_size = Vec2::new(window.height(), window.width());
         let mesh = Mesh::from(shape::Quad {
             size: window_size,
             flip: false,
         });
+        let polygon_mesh = Mesh::from(shape::Quad {
+            size: polygon_window_size,
+            flip: false,
+        });
         let audio_mesh: Mesh2dHandle = Mesh2dHandle(meshes.add(mesh.clone()));
+        let polygon_audio_mesh: Mesh2dHandle = Mesh2dHandle(meshes.add(polygon_mesh.clone()));
 
         // Remove the old visualizer entity if it exists
         if let Some(entity) = audio_entity.0.take() {
@@ -117,11 +129,18 @@ pub fn spawn_visualization(
         if let Some(entity) = polygon_entity.0.take() {
             commands.entity(entity).despawn();
         }
+        if let Some(entity) = wave_entity.0.take() {
+            commands.entity(entity).despawn();
+        }
 
         match *visualization_type {
             VisualizationType::Bar => {
-                let bar_material_handle =
-                    prepare_audio_material(&mut audio_material, window_size.x, window_size.y);
+                let bar_material_handle = prepare_audio_material(
+                    &mut audio_material,
+                    window_size.x,
+                    window_size.y,
+                    colors,
+                );
                 audio_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
@@ -134,8 +153,12 @@ pub fn spawn_visualization(
                 );
             }
             VisualizationType::String => {
-                let string_material_handle =
-                    prepare_string_material(&mut string_material, window_size.x, window_size.y);
+                let string_material_handle = prepare_string_material(
+                    &mut string_material,
+                    window_size.x,
+                    window_size.y,
+                    colors,
+                );
                 string_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
@@ -152,6 +175,7 @@ pub fn spawn_visualization(
                     &mut circle_split_material,
                     window_size.x,
                     window_size.y,
+                    colors,
                 );
                 circle_split_entity.0 = Some(
                     commands
@@ -165,13 +189,33 @@ pub fn spawn_visualization(
                 );
             }
             VisualizationType::Polygon => {
-                let polygon_material_handle =
-                    prepare_polygon_material(&mut polygon_material, window_size.x, window_size.y);
+                let polygon_material_handle = prepare_polygon_material(
+                    &mut polygon_material,
+                    polygon_window_size.x,
+                    polygon_window_size.y,
+                    colors,
+                );
                 polygon_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
-                            mesh: audio_mesh.clone(),
+                            mesh: polygon_audio_mesh.clone(),
                             material: polygon_material_handle,
+                            transform: Transform::from_rotation(Quat::from_rotation_z(
+                                (90.0_f32).to_radians(),
+                            )),
+                            ..Default::default()
+                        })
+                        .id(),
+                );
+            }
+            VisualizationType::Wave => {
+                let wave_material_handle =
+                    prepare_wave_material(&mut wave_material, window_size.x, window_size.y, colors);
+                wave_entity.0 = Some(
+                    commands
+                        .spawn(MaterialMesh2dBundle {
+                            mesh: audio_mesh.clone(),
+                            material: wave_material_handle,
                             transform: Transform::from_xyz(0.0, 0.0, 0.0),
                             ..Default::default()
                         })
@@ -190,20 +234,29 @@ pub fn window_resized_event(
     mut meshes: ResMut<Assets<Mesh>>, // For meshes
     visualization_type: Res<VisualizationType>,
     mut audio_material: ResMut<Assets<AudioMaterial>>,
-    mut string_material: ResMut<Assets<StringMaterial>>,
-    mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
-    mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     mut audio_entity: ResMut<AudioEntity>,
+    mut string_material: ResMut<Assets<StringMaterial>>,
     mut string_entity: ResMut<StringEntity>,
+    mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut circle_split_entity: ResMut<CircleSplitEntity>,
+    mut polygon_material: ResMut<Assets<PolygonMaterial>>,
     mut polygon_entity: ResMut<PolygonEntity>,
+    mut wave_material: ResMut<Assets<WaveMaterial>>,
+    mut wave_entity: ResMut<WaveEntity>,
+    colors: Res<Colors>,
 ) {
-    for event in events.iter() {
+    let colors = colors.into_inner();
+    for event in events.read() {
         println!("Updating Window Size");
 
         // Create a new mesh for the updated window size.
         let mesh_handle = meshes.add(Mesh::from(shape::Quad {
             size: Vec2::new(event.width, event.height),
+            flip: false,
+        }));
+        // Create a new mesh for the updated window size.
+        let polygon_mesh_handle = meshes.add(Mesh::from(shape::Quad {
+            size: Vec2::new(event.height, event.width),
             flip: false,
         }));
 
@@ -216,7 +269,7 @@ pub fn window_resized_event(
                 }
                 // Prepare and spawn a new bar visualizer entity.
                 let bar_material_handle =
-                    prepare_audio_material(&mut audio_material, event.width, event.height);
+                    prepare_audio_material(&mut audio_material, event.width, event.height, colors);
                 audio_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
@@ -233,8 +286,12 @@ pub fn window_resized_event(
                     commands.entity(entity).despawn();
                 }
                 // Prepare and spawn a new string visualizer entity.
-                let string_material_handle =
-                    prepare_string_material(&mut string_material, event.width, event.height);
+                let string_material_handle = prepare_string_material(
+                    &mut string_material,
+                    event.width,
+                    event.height,
+                    colors,
+                );
                 string_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
@@ -255,6 +312,7 @@ pub fn window_resized_event(
                     &mut circle_split_material,
                     event.width,
                     event.height,
+                    colors,
                 );
                 circle_split_entity.0 = Some(
                     commands
@@ -272,13 +330,37 @@ pub fn window_resized_event(
                     commands.entity(entity).despawn();
                 }
                 // Prepare and spawn a new polygon visualizer entity.
-                let polygon_material_handle =
-                    prepare_polygon_material(&mut polygon_material, event.width, event.height);
+                let polygon_material_handle = prepare_polygon_material(
+                    &mut polygon_material,
+                    event.width,
+                    event.height,
+                    colors,
+                );
                 polygon_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
-                            mesh: Mesh2dHandle(mesh_handle),
+                            mesh: Mesh2dHandle(polygon_mesh_handle),
                             material: polygon_material_handle,
+                            transform: Transform::from_rotation(Quat::from_rotation_z(
+                                (90.0_f32).to_radians(),
+                            )),
+                            ..Default::default()
+                        })
+                        .id(),
+                );
+            }
+            VisualizationType::Wave => {
+                if let Some(entity) = wave_entity.0.take() {
+                    commands.entity(entity).despawn();
+                }
+                // Prepare and spawn a new wave visualizer entity.
+                let wave_material_handle =
+                    prepare_wave_material(&mut wave_material, event.width, event.height, colors);
+                wave_entity.0 = Some(
+                    commands
+                        .spawn(MaterialMesh2dBundle {
+                            mesh: Mesh2dHandle(mesh_handle),
+                            material: wave_material_handle,
                             transform: Transform::from_xyz(0.0, 0.0, 0.0),
                             ..Default::default()
                         })

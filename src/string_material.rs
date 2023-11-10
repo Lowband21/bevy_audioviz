@@ -5,6 +5,8 @@ use bevy::sprite::Material2d;
 
 use crate::ARRAY_UNIFORM_SIZE;
 
+use crate::Colors;
+
 #[derive(Resource)]
 pub struct StringEntity(pub Option<Entity>);
 impl Default for StringEntity {
@@ -39,22 +41,35 @@ pub fn prepare_string_material(
     materials: &mut ResMut<Assets<StringMaterial>>,
     width: f32,
     height: f32,
+    colors: &Colors,
 ) -> Handle<StringMaterial> {
     let material = StringMaterial {
         left_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         right_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
         viewport_width: width,
         viewport_height: height,
-        monochrome: 0,
+        monochrome: if colors.monochrome { 1 } else { 0 },
         colors: [
-            Vec4::new(0.0, 0.0, 1.0, 1.0),
-            Vec4::new(0.0, 1.0, 0.0, 1.0),
-            Vec4::new(1.0, 0.0, 0.0, 1.0),
+            Vec4::new(
+                colors.color_start.r(),
+                colors.color_start.g(),
+                colors.color_start.b(),
+                colors.color_start.a(),
+            ),
+            Vec4::new(
+                colors.color_middle.r(),
+                colors.color_middle.g(),
+                colors.color_middle.b(),
+                colors.color_middle.a(),
+            ),
+            Vec4::new(
+                colors.color_end.r(),
+                colors.color_end.g(),
+                colors.color_end.b(),
+                colors.color_end.a(),
+            ),
             Vec4::ZERO,
         ],
-        //color_start: [0f32; 4],
-        //color_middle: [0f32; 3],
-        //color_end: [0f32; 3],
     };
     materials.add(material)
 }
