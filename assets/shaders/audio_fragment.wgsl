@@ -34,24 +34,24 @@ var<uniform> globals: Globals;
 
 
 
-fn value_to_monochrome(value: f32) -> vec3<f32> {
+fn value_to_monochrome(value: f32) -> vec4<f32> {
     // Define a grayscale value by setting all color components to the value
     let grayscale = value; // Value between 0.0 (black) and 1.0 (white)
 
     // Create a color vector using the grayscale value for all components
-    let color = vec3<f32>(grayscale, grayscale, grayscale);
+    let color = vec4<f32>(grayscale, grayscale, grayscale, 1.0);
 
     // Return the color with full opacity
     return color;
 }
-fn value_to_color(value: f32) -> vec3<f32> {
+fn value_to_color(value: f32) -> vec4<f32> {
     // Define start, middle, and end colors for the gradient
-    let start_color = vec3<f32>(colors[0].x, colors[0].y, colors[0].z); // Blue
-    let middle_color = vec3<f32>(colors[1].x, colors[1].y, colors[1].z); // Green
-    let end_color = vec3<f32>(colors[2].x, colors[2].y, colors[2].z); // Red
+    let start_color = vec4<f32>(colors[0].x, colors[0].y, colors[0].z, colors[0].w); // Blue
+    let middle_color = vec4<f32>(colors[1].x, colors[1].y, colors[1].z, colors[1].w); // Green
+    let end_color = vec4<f32>(colors[2].x, colors[2].y, colors[2].z, colors[2].w); // Red
 
     // Declare a variable for the color
-    var color: vec3<f32>;
+    var color: vec4<f32>;
 
     // Use an if statement to determine which gradient range to use
     if (value < 0.5) {
@@ -91,12 +91,11 @@ fn fragment(
     let flipped_y = 1.0 - uv.y;
 
     // Get the color based on the audio value
-    var color: vec3<f32>;
+    var color: vec4<f32>;
     if (monochrome == 1u){
-        color = value_to_color(audio_value * ((-(uv.y * 0.8) + 1.0) + 0.2));
-
-    }else{
         color = value_to_monochrome(audio_value);
+    }else{
+        color = value_to_color(audio_value * ((-(uv.y * 0.8) + 1.0) + 0.2));
     }
 
 
@@ -110,12 +109,12 @@ fn fragment(
 
     
     // Soft edges using smoothstep function
-    let edge_softness = 0.01; // Edge softness value
-    let alpha = smoothstep(0.0, edge_softness, bar_height - flipped_y);
+    //let edge_softness = 0.01; // Edge softness value
+    //let alpha = smoothstep(0.0, edge_softness, bar_height - flipped_y);
     
     // Draw the bar with soft edges
     if (flipped_y <= bar_height) {
-        return vec4<f32>(color.x, color.y, color.z, alpha);
+        return color;
     } else {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Draw black if above the bar height
     }

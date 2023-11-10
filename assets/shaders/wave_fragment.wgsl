@@ -38,8 +38,6 @@ struct Globals {
 @group(0) @binding(1)
 var<uniform> globals: Globals;
 
-
-
 fn value_to_monochrome(value: f32) -> vec4<f32> {
     // Define a grayscale value by setting all color components to the value
     let grayscale = value; // Value between 0.0 (black) and 1.0 (white)
@@ -79,52 +77,67 @@ fn fragment(
 ) -> @location(0) vec4<f32> {
     let aspect_ratio = viewport_width / viewport_height;
 
-    // Total number of circles
-    let num_circles: i32 = 128;
-    // Determine the size of each section for a circle
-    let section_width = 1.0 / f32(num_circles);
-    // Calculate the center of each section
-    let section_center_x = (floor(uv.x / section_width) + 0.5) * section_width;
+    // Constants for DNA visualization
+    let num_strands: i32 = 128;
+    let strand_spacing = 1.0 / f32(num_strands);
+    let time_scale = globals.time * 5.0;
+    let pi = 3.14159265358979323846;
+    let two_pi = 2.0 * pi;
 
-    // Correct the UV coordinates for the aspect ratio
-    let uv_corrected = vec2<f32>(uv.x, -uv.y / aspect_ratio);
+    let uv_corrected = vec2<f32>(uv.x, uv.y);
 
-    // Calculate the index for the audio data based on the x-coordinate
-    let index = i32((abs(uv_corrected.x - 0.5) * 2.0) * f32(num_circles / 2)); // *2 because we have half as many data points as circles
+    var color: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
-    // Determine which quarter of the vec4 to use
-    let component_index = index % 4;
-    let array_index = index / 4;
-
-    // Retrieve the current audio value
+    // Initialize audio_value before using it to calculate twist_offset
     var audio_value = 0.0;
-    // Access the audio data from the appropriate array
     if (uv_corrected.x > 0.5) {
+        let index = i32((abs(uv_corrected.x - 0.5) * 2.0) * f32(num_strands / 2));
+        let component_index = index % 4;
+        let array_index = index / 4;
         audio_value = right_data[array_index][component_index];
     } else {
+        let index = i32((abs(uv_corrected.x - 0.5) * 2.0) * f32(num_strands / 2));
+        let component_index = index % 4;
+        let array_index = index / 4;
         audio_value = left_data[array_index][component_index];
     }
 
-    // Use the audio value to define the circle's vertical center and diameter
-    let scaled_audio_value = -(audio_value / 5.0) + 0.6;
-    // Map audio value to circle diameter, then calculate radius
-    let max_diameter = section_width; // Maximum diameter is the width of one section
-    let diameter = ((audio_value * 0.8) + 0.2) * max_diameter;
-    let radius = diameter * 0.5;
+    // Now calculate the twist_offset using the initialized audio_value
+    let twist_intensity = audio_value * 0.5;
+    let twist_offset = sin(uv_corrected.y * two_pi * f32(num_strands) + time_scale) * twist_intensity;
 
-    // Calculate distance from the pixel to the section's center
-    let dist_to_center = distance(vec2<f32>(uv_corrected.x, -uv_corrected.y), vec2<f32>(section_center_x, scaled_audio_value / aspect_ratio));
+    // Use the updated audio_value to perform further calculations
+    let strand_x_pos = f32(i32(uv_corrected.x * f32(num_strands))) * strand_spacing;
 
-    // If the distance is within the circle's radius, color the pixel
-    if (dist_to_center < radius) {
+    let top_strand = 0.5 + audio_value * 0.1;
+    let bottom_strand = 0.5 - audio_value * 0.1;
+
+    let alpha = mix(0.1, 0.8, audio_value);
+
+    // Improved gradient calculation
+    let gradient = uv_corrected.y * 0.5 + 0.5;
+    
+    // Glow effect
+    let glow = exp(-10.0 * abs(uv_corrected.y - (top_strand + bottom_strand) * 0.5));
+
+    if (abs(uv_corrected.y - top_strand) < 0.001 || abs(uv_corrected.y - bottom_strand) < 0.001) {
         if (monochrome == 1u) {
-            return value_to_monochrome(audio_value);
+            color = value_to_monochrome(audio_value);
         } else {
-            return value_to_color(audio_value);
+            color = value_to_color(audio_value);
         }
-    } else {
-        // If outside the radius, the pixel is not part of the circle
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+        color.a = alpha;
+    } else if (uv_corrected.y < top_strand - 0.001 && uv_corrected.y > bottom_strand + 0.001) {
+        if (monochrome == 1u) {
+            color = value_to_monochrome(audio_value);
+        } else {
+            color = value_to_color(audio_value);
+        }
+        color.a = alpha * glow;
     }
-}
 
+    // Mix the base color with the gradient for a smooth transition
+    color = vec4<f32>(mix(color.rgb, color.rgb * gradient, 0.3), color.a);
+
+    return color;
+}

@@ -7,6 +7,11 @@ var<uniform> viewport_width: f32;
 @group(1) @binding(2)
 var<uniform> viewport_height: f32;
 
+@group(1) @binding(4)
+var<uniform> monochrome: u32;
+@group(1) @binding(5)
+var<uniform> colors: array<vec4<f32>, 4>;
+
 struct Globals {
     // The time since startup in seconds
     // Wraps to 0 after 1 hour.
@@ -26,27 +31,34 @@ struct Globals {
 var<uniform> globals: Globals;
 
 
+fn value_to_monochrome(value: f32) -> vec4<f32> {
+    // Define a grayscale value by setting all color components to the value
+    let grayscale = value; // Value between 0.0 (black) and 1.0 (white)
 
+    // Create a color vector using the grayscale value for all components
+    let color = vec4<f32>(grayscale, grayscale, grayscale, 1.0);
 
+    // Return the color with full opacity
+    return color;
+}
 fn value_to_color(value: f32) -> vec4<f32> {
-    // Define colors
-    let color1 = vec3<f32>(0.5, 0.0, 1.0); // Purple
-    let color2 = vec3<f32>(0.0, 1.0, 1.0); // Cyan
-    let color3 = vec3<f32>(1.0, 0.0, 0.0); // Red
-    let color4 = vec3<f32>(1.0, 1.0, 0.0); // Yellow
+    // Define start, middle, and end colors for the gradient
+    let start_color = vec4<f32>(colors[0].x, colors[0].y, colors[0].z, colors[0].w); // Blue
+    let middle_color = vec4<f32>(colors[1].x, colors[1].y, colors[1].z, colors[1].w); // Green
+    let end_color = vec4<f32>(colors[2].x, colors[2].y, colors[2].z, colors[2].w); // Red
 
-    // Create a gradient based on the value
-    var color: vec3<f32>;
-    if (value < 0.33) {
-        color = mix(color1, color2, value * 3.0);
-    } else if (value < 0.66) {
-        color = mix(color2, color3, (value - 0.33) * 3.0);
+    // Declare a variable for the color
+    var color: vec4<f32>;
+
+    // Use an if statement to determine which gradient range to use
+    if (value < 0.5) {
+        color = mix(start_color, middle_color, value * 2.0);
     } else {
-        color = mix(color3, color4, (value - 0.66) * 3.0);
+        color = mix(middle_color, end_color, (value - 0.5) * 2.0);
     }
 
     // Return the color with full opacity
-    return vec4<f32>(color, 1.0);
+    return color;
 }
 
 @fragment
@@ -56,15 +68,14 @@ fn fragment(
     @location(1) normals: vec3<f32>,
     @location(2) uv: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-    
 
     // Calculate the aspect ratio
     let aspect_ratio = viewport_height / viewport_width;
 
     // Set the center of the circle to be the middle of the UV space
-    let center = vec2<f32>(0.5, 0.5 * aspect_ratio);
+    let center = vec2<f32>(0.5 * aspect_ratio, 0.5);// * aspect_ratio);
 
-    let uv_corrected = vec2<f32>(uv.x, uv.y * aspect_ratio);
+    let uv_corrected = vec2<f32>(uv.x * aspect_ratio, uv.y);// * aspect_ratio);
 
     // Calculate the angle from the current UV coordinate to the center
     let angle_uv = atan2(uv_corrected.y - center.y, uv_corrected.x - center.x);
@@ -117,7 +128,12 @@ fn fragment(
 
     // Check if the point is inside the triangle
     if (a >= 0.0 && a <= 1.0 && b >= 0.0 && b <= 1.0 && c >= 0.0 && c <= 1.0) {
-        return value_to_color(audio_value);
+        // Get the color based on the audio value
+        if (monochrome == 1u){
+            return value_to_monochrome(audio_value);
+        }else{
+            return value_to_color(audio_value * ((-(uv.y * 0.8) + 1.0) + 0.2));
+        }
     } else {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Black color
     }

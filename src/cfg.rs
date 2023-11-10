@@ -11,6 +11,8 @@ pub struct MyConfig {
     pub smoothing: u32,
     pub smoothing_size: u32,
     pub interpolation_factor: f32,
+    pub upper_gate_threshold: f32,
+    pub lower_gate_threshold: f32,
 }
 impl ::std::default::Default for MyConfig {
     fn default() -> Self {
@@ -24,6 +26,8 @@ impl ::std::default::Default for MyConfig {
             smoothing: 2,
             smoothing_size: 4,
             interpolation_factor: 0.6,
+            upper_gate_threshold: 0.1,
+            lower_gate_threshold: 0.8,
         }
     }
 }

@@ -4,29 +4,27 @@ use bevy::prelude::*;
 use bevy::sprite::Material2dPlugin;
 use bevy::window::{PresentMode, WindowTheme};
 
+use bevy_egui::EguiPlugin;
+
 mod audio_capture;
 mod audio_processing;
-mod bar_material;
 mod cfg;
-mod circle_split_material;
-mod polygon_material;
-mod string_material;
+mod materials;
 mod ui;
 mod visualization;
-use crate::ui::UIPlugin;
 
 use crate::audio_capture::{audio_capture_startup_system, AudioReceiver};
 use crate::audio_processing::{audio_event_system, AudioVisualizerState};
-use crate::bar_material::{AudioEntity, AudioMaterial};
 use crate::cfg::*;
-use crate::circle_split_material::{CircleSplitEntity, CircleSplitMaterial};
-use crate::polygon_material::{PolygonEntity, PolygonMaterial};
-use crate::string_material::{StringEntity, StringMaterial};
+use crate::materials::{AudioEntity, AudioMaterial};
+use crate::materials::{CircleSplitEntity, CircleSplitMaterial};
+use crate::materials::{PolygonEntity, PolygonMaterial};
+use crate::materials::{StringEntity, StringMaterial};
+use crate::materials::{WaveEntity, WaveMaterial};
+use crate::ui::{Colors, UIPlugin};
 use crate::visualization::{
     spawn_visualization, visualization_toggle_system, window_resized_event, VisualizationType,
 };
-
-use bevy_egui::EguiPlugin;
 
 const ARRAY_UNIFORM_SIZE: usize = 16;
 const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
@@ -74,6 +72,7 @@ fn main() {
         .insert_resource(AudioVisualizerState::new(NUM_BUCKETS))
         .insert_resource(CfgResource(config))
         .insert_resource(GUIToggle::default())
+        .insert_resource(Colors::default())
         .init_resource::<AudioReceiver>() // Initialize the `AudioReceiver` resource.
         .init_resource::<VisualizationType>()
         .add_systems(Startup, setup)
@@ -94,10 +93,12 @@ fn main() {
         .init_resource::<StringEntity>()
         .init_resource::<CircleSplitEntity>()
         .init_resource::<PolygonEntity>()
+        .init_resource::<WaveEntity>()
         .add_plugins(Material2dPlugin::<AudioMaterial>::default())
         .add_plugins(Material2dPlugin::<StringMaterial>::default())
         .add_plugins(Material2dPlugin::<CircleSplitMaterial>::default())
         .add_plugins(Material2dPlugin::<PolygonMaterial>::default())
+        .add_plugins(Material2dPlugin::<WaveMaterial>::default())
         .run();
 }
 
