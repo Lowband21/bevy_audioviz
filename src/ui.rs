@@ -11,6 +11,16 @@ use crate::StringMaterial;
 //use bevy::math::Vec4Swizzles;
 use bevy_egui::{egui, EguiContexts};
 
+#[macro_export]
+macro_rules! update_material {
+    ($material:expr, $colors:expr) => {
+        $material.1.monochrome = if $colors.monochrome { 1 } else { 0 };
+        $material.1.colors[0] = $colors.color_start.into();
+        $material.1.colors[1] = $colors.color_middle.into();
+        $material.1.colors[2] = $colors.color_end.into();
+    };
+}
+
 #[derive(Default)]
 pub struct UIPlugin;
 
@@ -163,34 +173,19 @@ fn uniform_update_ui_system(
         });
 
         if let Some(material) = bar_material.iter_mut().next() {
-            material.1.monochrome = if colors.monochrome { 1 } else { 0 };
-            material.1.colors[0] = colors.color_start.into();
-            material.1.colors[1] = colors.color_middle.into();
-            material.1.colors[2] = colors.color_end.into();
+            update_material!(material, colors);
         }
         if let Some(material) = circle_split_material.iter_mut().next() {
-            material.1.monochrome = if colors.monochrome { 1 } else { 0 };
-            material.1.colors[0] = colors.color_start.into();
-            material.1.colors[1] = colors.color_middle.into();
-            material.1.colors[2] = colors.color_end.into();
+            update_material!(material, colors);
         }
         if let Some(material) = string_material.iter_mut().next() {
-            material.1.monochrome = if colors.monochrome { 1 } else { 0 };
-            material.1.colors[0] = colors.color_start.into();
-            material.1.colors[1] = colors.color_middle.into();
-            material.1.colors[2] = colors.color_end.into();
+            update_material!(material, colors);
         }
         if let Some(material) = wave_material.iter_mut().next() {
-            material.1.monochrome = if colors.monochrome { 1 } else { 0 };
-            material.1.colors[0] = colors.color_start.into();
-            material.1.colors[1] = colors.color_middle.into();
-            material.1.colors[2] = colors.color_end.into();
+            update_material!(material, colors);
         }
         if let Some(material) = polygon_material.iter_mut().next() {
-            material.1.monochrome = if colors.monochrome { 1 } else { 0 };
-            material.1.colors[0] = colors.color_start.into();
-            material.1.colors[1] = colors.color_middle.into();
-            material.1.colors[2] = colors.color_end.into();
+            update_material!(material, colors);
         }
     });
 }

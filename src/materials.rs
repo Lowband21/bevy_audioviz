@@ -5,8 +5,6 @@ use bevy::sprite::Material2d;
 
 use crate::ARRAY_UNIFORM_SIZE;
 
-
-
 #[macro_export]
 macro_rules! impl_material_new {
     ($material_type:ty) => {
@@ -88,18 +86,20 @@ macro_rules! impl_one_channel_material_new {
     };
 }
 
-#[derive(Resource)]
-#[derive(Default)]
+#[derive(Resource, Default)]
+pub struct BarEntity(pub Option<Entity>);
+
+#[derive(Resource, Default)]
 pub struct StringEntity(pub Option<Entity>);
 
-#[derive(Resource)]
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct CircleSplitEntity(pub Option<Entity>);
 
-#[derive(Resource)]
-#[derive(Default)]
-pub struct PolygonEntity(pub Option<Entity>);
+#[derive(Resource, Default)]
+pub struct WaveEntity(pub Option<Entity>);
 
+#[derive(Resource, Default)]
+pub struct PolygonEntity(pub Option<Entity>);
 
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "fcf0ff0e-23f6-41f9-98a2-896a7407c235"]
@@ -145,11 +145,6 @@ impl Material2d for CircleSplitMaterial {
     }
 }
 
-#[derive(Resource)]
-#[derive(Default)]
-pub struct WaveEntity(pub Option<Entity>);
-
-
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "041f0757-9037-4a1e-8489-f738084ecec4"]
 pub struct WaveMaterial {
@@ -191,10 +186,6 @@ impl Material2d for PolygonMaterial {
         "shaders/polygon_fragment.wgsl".into()
     }
 }
-#[derive(Resource)]
-#[derive(Default)]
-pub struct BarEntity(pub Option<Entity>);
-
 
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "e71681d9-3499-4bba-881d-2eaeed7c1c31"]

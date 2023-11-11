@@ -116,32 +116,6 @@ pub fn audio_event_system(
                     &mut wave_material,
                 );
             }
-            //else {
-            //    let left_samples = vec![0.0; 128];
-            //    let right_samples = vec![0.0; 128];
-            //    let left_buckets =
-            //        samples_to_buckets(config.0.clone(), left_samples, &mut visualizer_state, true)
-            //            .unwrap();
-            //    let right_buckets = samples_to_buckets(
-            //        config.0.clone(),
-            //        right_samples,
-            //        &mut visualizer_state,
-            //        false,
-            //    )
-            //    .unwrap();
-            //    // Update visualizer materials with normalized buckets
-            //    update_visualizer_materials(
-            //        &left_buckets,
-            //        &right_buckets,
-            //        &window_size,
-            //        &visualization_type,
-            //        &mut bar_material,
-            //        &mut string_material,
-            //        &mut circle_split_material,
-            //        &mut polygon_material,
-            //        &mut wave_material,
-            //    );
-            //}
         }
     }
 }
