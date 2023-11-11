@@ -16,7 +16,7 @@ mod visualization;
 use crate::audio_capture::{audio_capture_startup_system, AudioReceiver};
 use crate::audio_processing::{audio_event_system, AudioVisualizerState};
 use crate::cfg::*;
-use crate::materials::{AudioEntity, AudioMaterial};
+use crate::materials::{BarEntity, BarMaterial};
 use crate::materials::{CircleSplitEntity, CircleSplitMaterial};
 use crate::materials::{PolygonEntity, PolygonMaterial};
 use crate::materials::{StringEntity, StringMaterial};
@@ -92,12 +92,12 @@ fn main() {
         )
         .add_systems(Update, toggle_vsync)
         .add_systems(Update, toggle_gui)
-        .init_resource::<AudioEntity>()
+        .init_resource::<BarEntity>()
         .init_resource::<StringEntity>()
         .init_resource::<CircleSplitEntity>()
         .init_resource::<PolygonEntity>()
         .init_resource::<WaveEntity>()
-        .add_plugins(Material2dPlugin::<AudioMaterial>::default())
+        .add_plugins(Material2dPlugin::<BarMaterial>::default())
         .add_plugins(Material2dPlugin::<StringMaterial>::default())
         .add_plugins(Material2dPlugin::<CircleSplitMaterial>::default())
         .add_plugins(Material2dPlugin::<PolygonMaterial>::default())

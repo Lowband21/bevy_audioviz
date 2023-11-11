@@ -203,54 +203,17 @@ impl Material2d for PolygonMaterial {
         "shaders/polygon_fragment.wgsl".into()
     }
 }
-//a Mandelbrot material with the given uniforms.
-pub fn prepare_polygon_material(
-    materials: &mut ResMut<Assets<PolygonMaterial>>,
-    width: f32,
-    height: f32,
-    colors: &Colors,
-) -> Handle<PolygonMaterial> {
-    let material = PolygonMaterial {
-        normalized_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
-        viewport_width: width,
-        viewport_height: height,
-        monochrome: if colors.monochrome { 1 } else { 0 },
-        colors: [
-            Vec4::new(
-                colors.color_start.r(),
-                colors.color_start.g(),
-                colors.color_start.b(),
-                colors.color_start.a(),
-            ),
-            Vec4::new(
-                colors.color_middle.r(),
-                colors.color_middle.g(),
-                colors.color_middle.b(),
-                colors.color_middle.a(),
-            ),
-            Vec4::new(
-                colors.color_end.r(),
-                colors.color_end.g(),
-                colors.color_end.b(),
-                colors.color_end.a(),
-            ),
-            Vec4::ZERO,
-        ],
-    };
-    materials.add(material)
-}
-
 #[derive(Resource)]
-pub struct AudioEntity(pub Option<Entity>);
-impl Default for AudioEntity {
+pub struct BarEntity(pub Option<Entity>);
+impl Default for BarEntity {
     fn default() -> Self {
-        AudioEntity(None)
+        BarEntity(None)
     }
 }
 
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "e71681d9-3499-4bba-881d-2eaeed7c1c31"]
-pub struct AudioMaterial {
+pub struct BarMaterial {
     #[uniform(0)]
     pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
     #[uniform(1)]
@@ -262,44 +225,8 @@ pub struct AudioMaterial {
     #[uniform(5)]
     pub colors: [Vec4; 4],
 }
-impl Material2d for AudioMaterial {
+impl Material2d for BarMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/audio_fragment.wgsl".into()
+        "shaders/bar_fragment.wgsl".into()
     }
-}
-//a Mandelbrot material with the given uniforms.
-pub fn prepare_audio_material(
-    materials: &mut ResMut<Assets<AudioMaterial>>,
-    width: f32,
-    height: f32,
-    colors: &Colors,
-) -> Handle<AudioMaterial> {
-    let material = AudioMaterial {
-        normalized_data: [Vec4::new(0.0, 0.0, 0.0, 0.0); ARRAY_UNIFORM_SIZE],
-        viewport_width: width,
-        viewport_height: height,
-        monochrome: if colors.monochrome { 1 } else { 0 },
-        colors: [
-            Vec4::new(
-                colors.color_start.r(),
-                colors.color_start.g(),
-                colors.color_start.b(),
-                colors.color_start.a(),
-            ),
-            Vec4::new(
-                colors.color_middle.r(),
-                colors.color_middle.g(),
-                colors.color_middle.b(),
-                colors.color_middle.a(),
-            ),
-            Vec4::new(
-                colors.color_end.r(),
-                colors.color_end.g(),
-                colors.color_end.b(),
-                colors.color_end.a(),
-            ),
-            Vec4::ZERO,
-        ],
-    };
-    materials.add(material)
 }

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::AudioMaterial;
+use crate::BarMaterial;
 use crate::CircleSplitMaterial;
 use crate::PolygonMaterial;
 use crate::WaveMaterial;
@@ -56,7 +56,7 @@ impl Default for Colors {
 
 fn uniform_update_ui_system(
     mut ctx: EguiContexts,
-    mut bar_material: ResMut<Assets<AudioMaterial>>,
+    mut bar_material: ResMut<Assets<BarMaterial>>,
     mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut string_material: ResMut<Assets<StringMaterial>>,
     mut wave_material: ResMut<Assets<WaveMaterial>>,

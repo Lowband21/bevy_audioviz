@@ -7,7 +7,7 @@ use crate::ARRAY_UNIFORM_SIZE;
 use crate::NUM_BUCKETS;
 
 use crate::materials::{
-    AudioMaterial, CircleSplitMaterial, PolygonMaterial, StringMaterial, WaveMaterial,
+    BarMaterial, CircleSplitMaterial, PolygonMaterial, StringMaterial, WaveMaterial,
 };
 use crate::VisualizationType;
 use crate::{CfgResource, MyConfig};
@@ -67,7 +67,7 @@ fn is_power_of_two(number: usize) -> bool {
 // Entry function for the audio event system
 pub fn audio_event_system(
     audio_receiver: Res<AudioReceiver>,
-    mut bar_material: ResMut<Assets<AudioMaterial>>,
+    mut bar_material: ResMut<Assets<BarMaterial>>,
     mut string_material: ResMut<Assets<StringMaterial>>,
     mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
     mut polygon_material: ResMut<Assets<PolygonMaterial>>,
@@ -233,7 +233,7 @@ fn update_visualizer_materials(
     right_buckets: &[Vec4; ARRAY_UNIFORM_SIZE],
     window_size: &Vec2,
     visualization_type: &VisualizationType,
-    bar_material: &mut ResMut<Assets<AudioMaterial>>,
+    bar_material: &mut ResMut<Assets<BarMaterial>>,
     string_material: &mut ResMut<Assets<StringMaterial>>,
     circle_split_material: &mut ResMut<Assets<CircleSplitMaterial>>,
     polygon_material: &mut ResMut<Assets<PolygonMaterial>>,

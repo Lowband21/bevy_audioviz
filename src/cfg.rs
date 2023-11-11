@@ -19,13 +19,13 @@ impl ::std::default::Default for MyConfig {
             mic_mode: false,
             host: None,
             device: None,
-            sample_rate: 48000,
+            sample_rate: 96000,
             frequency_min: 20.,
             frequency_max: 20_000.,
             smoothing: 2,
             smoothing_size: 4,
-            interpolation_factor: 0.6,
-            gate_threshold: 0.1,
+            interpolation_factor: 0.3,
+            gate_threshold: 0.01,
         }
     }
 }

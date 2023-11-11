@@ -23,5 +23,13 @@ opt-level = 3
 [profile.dev]
 opt-level = 1
 
-#[profile.release]
-#lto = "thin"
+[profile.release]
+lto = "thin"
+
+[target.x86_64-pc-windows-msvc]
+linker = "lld"
+rustflags = [
+  "-Lnative=/home/me/.xwin/crt/lib/x86_64",
+  "-Lnative=/home/me/.xwin/sdk/lib/um/x86_64",
+  "-Lnative=/home/me/.xwin/sdk/lib/ucrt/x86_64"
+]

@@ -81,8 +81,8 @@ pub fn visualization_toggle_system(
 pub fn spawn_visualization(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>, // For meshes
-    mut audio_material: ResMut<Assets<AudioMaterial>>,
-    mut audio_entity: ResMut<AudioEntity>,
+    mut bar_material: ResMut<Assets<BarMaterial>>,
+    mut bar_entity: ResMut<BarEntity>,
     mut string_material: ResMut<Assets<StringMaterial>>,
     mut string_entity: ResMut<StringEntity>,
     mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
@@ -115,7 +115,7 @@ pub fn spawn_visualization(
         let polygon_audio_mesh: Mesh2dHandle = Mesh2dHandle(meshes.add(polygon_mesh.clone()));
 
         // Remove the old visualizer entity if it exists
-        if let Some(entity) = audio_entity.0.take() {
+        if let Some(entity) = bar_entity.0.take() {
             commands.entity(entity).despawn();
         }
         if let Some(entity) = string_entity.0.take() {
@@ -133,15 +133,15 @@ pub fn spawn_visualization(
 
         match *visualization_type {
             VisualizationType::Bar => {
-                impl_one_channel_material_new!(AudioMaterial);
+                impl_one_channel_material_new!(BarMaterial);
                 let bar_material_handle = prepare_material!(
-                    AudioMaterial,
-                    audio_material,
+                    BarMaterial,
+                    bar_material,
                     window_size.x,
                     window_size.y,
                     colors
                 );
-                audio_entity.0 = Some(
+                bar_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
                             mesh: audio_mesh.clone(),
@@ -245,8 +245,8 @@ pub fn window_resized_event(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>, // For meshes
     visualization_type: Res<VisualizationType>,
-    mut audio_material: ResMut<Assets<AudioMaterial>>,
-    mut audio_entity: ResMut<AudioEntity>,
+    mut bar_material: ResMut<Assets<BarMaterial>>,
+    mut bar_entity: ResMut<BarEntity>,
     mut string_material: ResMut<Assets<StringMaterial>>,
     mut string_entity: ResMut<StringEntity>,
     mut circle_split_material: ResMut<Assets<CircleSplitMaterial>>,
@@ -276,13 +276,13 @@ pub fn window_resized_event(
         match *visualization_type {
             VisualizationType::Bar => {
                 // Despawn any existing visualizer entities regardless of type.
-                if let Some(entity) = audio_entity.0.take() {
+                if let Some(entity) = bar_entity.0.take() {
                     commands.entity(entity).despawn();
                 }
                 // Prepare and spawn a new bar visualizer entity.
                 let bar_material_handle =
-                    prepare_audio_material(&mut audio_material, event.width, event.height, colors);
-                audio_entity.0 = Some(
+                    prepare_material!(BarMaterial, bar_material, event.width, event.height, colors);
+                bar_entity.0 = Some(
                     commands
                         .spawn(MaterialMesh2dBundle {
                             mesh: Mesh2dHandle(mesh_handle),
@@ -344,11 +344,12 @@ pub fn window_resized_event(
                     commands.entity(entity).despawn();
                 }
                 // Prepare and spawn a new polygon visualizer entity.
-                let polygon_material_handle = prepare_polygon_material(
+                let polygon_material_handle = prepare_material!(
+                    PolygonMaterial,
                     &mut polygon_material,
                     event.width,
                     event.height,
-                    colors,
+                    colors
                 );
                 polygon_entity.0 = Some(
                     commands
