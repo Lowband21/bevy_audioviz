@@ -88,8 +88,8 @@ pub fn audio_event_system(
                 .recv_timeout(Duration::new(0, 100))
             {
                 // Flatten the audio samples into a single Vec<f32>
-                let left_samples = audio_event.left.iter().cloned().collect::<Vec<f32>>();
-                let right_samples = audio_event.right.iter().cloned().collect::<Vec<f32>>();
+                let left_samples = audio_event.left.to_vec();
+                let right_samples = audio_event.right.to_vec();
 
                 let left_buckets =
                     samples_to_buckets(config.0.clone(), left_samples, &mut visualizer_state, true)

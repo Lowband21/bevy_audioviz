@@ -125,7 +125,7 @@ pub fn stream_input(
                                 eprintln!("Buffer ({}) is outside of range: {}, {}", data.len(), min, max);
                                 return;
                             }
-                            let _buffer: Vec<f32> = data.iter().cloned().collect();
+                            let _buffer: Vec<f32> = data.to_vec();
                             // Initialize vectors for left and right channels
                             let mut left_channel = Vec::with_capacity(data.len() / 2);
                             let mut right_channel = Vec::with_capacity(data.len() / 2);
@@ -148,8 +148,7 @@ pub fn stream_input(
 
                             if sender.send(audio_event).is_err() {
                                 eprintln!("The receiver has been dropped, terminating audio input stream.");
-                                rf_closure.store(false, Ordering::SeqCst); // Signal the thread to exit
-                                return; // Exit early to avoid further processing
+                                rf_closure.store(false, Ordering::SeqCst); // Signal the thread to exit// Exit early to avoid further processing
                             }
                         }
                         cpal::SupportedBufferSize::Unknown => {

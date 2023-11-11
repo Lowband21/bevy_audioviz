@@ -15,7 +15,9 @@ use std::sync::{Arc, Mutex};
 use crate::{impl_material_new, impl_one_channel_material_new, prepare_material};
 
 #[derive(Resource)]
+#[derive(Default)]
 pub enum VisualizationType {
+    #[default]
     Bar,
     String,
     CircleSplit,
@@ -23,11 +25,7 @@ pub enum VisualizationType {
     Wave,
 }
 
-impl Default for VisualizationType {
-    fn default() -> Self {
-        VisualizationType::Bar
-    }
-}
+
 
 // visualization_toggle_system now ensures proper cleanup and restart
 pub fn visualization_toggle_system(

@@ -33,15 +33,12 @@ const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
 pub struct CfgResource(MyConfig);
 
 #[derive(Resource)]
+#[derive(Default)]
 pub struct GUIToggle {
     pub active: bool,
 }
 
-impl Default for GUIToggle {
-    fn default() -> Self {
-        GUIToggle { active: false }
-    }
-}
+
 
 fn main() {
     let config = match confy::load("bevy_audioviz", "config") {
@@ -70,7 +67,7 @@ fn main() {
         }),))
         .add_plugins(EguiPlugin)
         .add_plugins(LogDiagnosticsPlugin::default())
-        .add_plugins(FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(FrameTimeDiagnosticsPlugin)
         .add_plugins(UIPlugin)
         .insert_resource(AudioVisualizerState::new(NUM_BUCKETS))
         .insert_resource(CfgResource(config))

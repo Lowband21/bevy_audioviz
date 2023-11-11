@@ -5,7 +5,7 @@ use bevy::sprite::Material2d;
 
 use crate::ARRAY_UNIFORM_SIZE;
 
-use crate::Colors;
+
 
 #[macro_export]
 macro_rules! impl_material_new {
@@ -89,26 +89,17 @@ macro_rules! impl_one_channel_material_new {
 }
 
 #[derive(Resource)]
+#[derive(Default)]
 pub struct StringEntity(pub Option<Entity>);
-impl Default for StringEntity {
-    fn default() -> Self {
-        StringEntity(None)
-    }
-}
+
 #[derive(Resource)]
+#[derive(Default)]
 pub struct CircleSplitEntity(pub Option<Entity>);
-impl Default for CircleSplitEntity {
-    fn default() -> Self {
-        CircleSplitEntity(None)
-    }
-}
+
 #[derive(Resource)]
+#[derive(Default)]
 pub struct PolygonEntity(pub Option<Entity>);
-impl Default for PolygonEntity {
-    fn default() -> Self {
-        PolygonEntity(None)
-    }
-}
+
 
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "fcf0ff0e-23f6-41f9-98a2-896a7407c235"]
@@ -155,12 +146,9 @@ impl Material2d for CircleSplitMaterial {
 }
 
 #[derive(Resource)]
+#[derive(Default)]
 pub struct WaveEntity(pub Option<Entity>);
-impl Default for WaveEntity {
-    fn default() -> Self {
-        WaveEntity(None)
-    }
-}
+
 
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "041f0757-9037-4a1e-8489-f738084ecec4"]
@@ -204,12 +192,9 @@ impl Material2d for PolygonMaterial {
     }
 }
 #[derive(Resource)]
+#[derive(Default)]
 pub struct BarEntity(pub Option<Entity>);
-impl Default for BarEntity {
-    fn default() -> Self {
-        BarEntity(None)
-    }
-}
+
 
 #[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
 #[uuid = "e71681d9-3499-4bba-881d-2eaeed7c1c31"]
