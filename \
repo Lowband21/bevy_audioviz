@@ -25,8 +25,8 @@ use crate::ui::{Colors, UIPlugin};
 use crate::visualization::{
     spawn_visualization, visualization_toggle_system, window_resized_event, VisualizationType,
 };
-use cpal::available_hosts;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::available_hosts;
 
 const ARRAY_UNIFORM_SIZE: usize = 16;
 const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
@@ -34,10 +34,13 @@ const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
 #[derive(Resource)]
 pub struct CfgResource(MyConfig);
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
+#[derive(Default)]
 pub struct GUIToggle {
     pub active: bool,
 }
+
+
 
 fn main() {
     let config = match confy::load("bevy_audioviz", "config") {
@@ -129,6 +132,7 @@ fn list_available_hosts() {
     }
 }
 
+ 
 fn list_audio_devices() {
     let host = cpal::default_host();
     let input_devices = host.input_devices().unwrap();
