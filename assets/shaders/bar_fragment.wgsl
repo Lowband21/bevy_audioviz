@@ -92,6 +92,7 @@ fn fragment(
     if (flipped_y <= bar_height) {
         return color;
     } else {
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Draw black if above the bar height
+        // Make this a bright blue color to easily see hot reloading working
+        return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Bright blue background
     }
 }

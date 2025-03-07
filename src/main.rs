@@ -28,7 +28,7 @@ use crate::visualization::{
     spawn_visualization, visualization_toggle_system, window_resized_event, VisualizationType,
 };
 use cpal::available_hosts;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::traits::{DeviceTrait, HostTrait};
 
 const ARRAY_UNIFORM_SIZE: usize = 16;
 const NUM_BUCKETS: usize = ARRAY_UNIFORM_SIZE * 4;
@@ -70,6 +70,9 @@ fn main() {
                 window_theme: Some(WindowTheme::Dark),
                 ..default()
             }),
+            ..default()
+        }).set(AssetPlugin {
+            watch_for_changes_override: None,
             ..default()
         }),))
         .add_plugins(EguiPlugin)

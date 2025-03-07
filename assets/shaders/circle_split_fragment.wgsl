@@ -113,7 +113,10 @@ fn fragment(
         if (monochrome == 1u){
             return value_to_monochrome(audio_value);
         }else {
-            return value_to_color(audio_value);
+            // Add a subtle glow effect by modifying the color based on distance to center
+            let glow_factor = 1.0 - (distance_to_center / radius);
+            let enhanced_color = value_to_color(audio_value * glow_factor);
+            return enhanced_color;
         }
     } else {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Black color
