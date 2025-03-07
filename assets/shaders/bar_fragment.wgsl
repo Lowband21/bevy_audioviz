@@ -92,7 +92,15 @@ fn fragment(
     if (flipped_y <= bar_height) {
         return color;
     } else {
-        // Make this a bright blue color to easily see hot reloading working
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Bright blue background
+        //// Create a subtle gradient background based on audio intensity
+        //let avg_value = (normalized_data[0][0] + normalized_data[0][1] + normalized_data[0][2] + normalized_data[0][3]) / 4.0;
+        //let bg_intensity = avg_value * 0.2; // Very subtle
+
+        //// Create a gradient from bottom to top
+        //let gradient_factor = (1.0 - uv.y) * 0.5; // Stronger at bottom, fading to top
+
+        //// Mix between pure black and a very subtle blue tone
+        //return vec4<f32>(0.0, bg_intensity * gradient_factor, bg_intensity * 2.0 * gradient_factor, 1.0);
+        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
     }
 }
