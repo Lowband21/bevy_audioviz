@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy::reflect::{TypePath, TypeUuid};
+use bevy::reflect::TypePath;
 use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::sprite::Material2d;
 
@@ -101,13 +101,12 @@ pub struct WaveEntity(pub Option<Entity>);
 #[derive(Resource, Default)]
 pub struct PolygonEntity(pub Option<Entity>);
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
-#[uuid = "fcf0ff0e-23f6-41f9-98a2-896a7407c235"]
+#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
 pub struct StringMaterial {
     #[uniform(0)]
-    pub left_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub left_data: [Vec4; ARRAY_UNIFORM_SIZE],
     #[uniform(1)]
-    pub right_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub right_data: [Vec4; ARRAY_UNIFORM_SIZE],
     #[uniform(2)]
     pub viewport_width: f32,
     #[uniform(3)]
@@ -123,13 +122,12 @@ impl Material2d for StringMaterial {
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
-#[uuid = "a3dafd0f-45ef-4d05-9a78-e309a208859b"]
+#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
 pub struct CircleSplitMaterial {
     #[uniform(0)]
-    pub left_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub left_data: [Vec4; ARRAY_UNIFORM_SIZE],
     #[uniform(1)]
-    pub right_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub right_data: [Vec4; ARRAY_UNIFORM_SIZE],
     #[uniform(2)]
     pub viewport_width: f32,
     #[uniform(3)]
@@ -145,13 +143,12 @@ impl Material2d for CircleSplitMaterial {
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
-#[uuid = "041f0757-9037-4a1e-8489-f738084ecec4"]
+#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
 pub struct WaveMaterial {
     #[uniform(0)]
-    pub left_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub left_data: [Vec4; ARRAY_UNIFORM_SIZE],
     #[uniform(1)]
-    pub right_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub right_data: [Vec4; ARRAY_UNIFORM_SIZE],
     #[uniform(2)]
     pub viewport_width: f32,
     #[uniform(3)]
@@ -167,18 +164,17 @@ impl Material2d for WaveMaterial {
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
-#[uuid = "00adadef-a1e7-4601-9169-87493ce3fa5c"]
+#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
 pub struct PolygonMaterial {
     #[uniform(0)]
-    pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE],
     #[uniform(1)]
     pub viewport_width: f32,
     #[uniform(2)]
     pub viewport_height: f32,
-    #[uniform(4)]
+    #[uniform(3)]
     pub monochrome: u32,
-    #[uniform(5)]
+    #[uniform(4)]
     pub colors: [Vec4; 4],
 }
 impl Material2d for PolygonMaterial {
@@ -187,18 +183,17 @@ impl Material2d for PolygonMaterial {
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypeUuid, TypePath, Asset)]
-#[uuid = "e71681d9-3499-4bba-881d-2eaeed7c1c31"]
+#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
 pub struct BarMaterial {
     #[uniform(0)]
-    pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE], // Use an array of vec4s (which is an array of [f32; 4] in Rust)}
+    pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE],
     #[uniform(1)]
     pub viewport_width: f32,
     #[uniform(2)]
     pub viewport_height: f32,
-    #[uniform(4)]
+    #[uniform(3)]
     pub monochrome: u32,
-    #[uniform(5)]
+    #[uniform(4)]
     pub colors: [Vec4; 4],
 }
 impl Material2d for BarMaterial {

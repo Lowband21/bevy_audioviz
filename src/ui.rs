@@ -15,9 +15,24 @@ use bevy_egui::{egui, EguiContexts};
 macro_rules! update_material {
     ($material:expr, $colors:expr) => {
         $material.1.monochrome = if $colors.monochrome { 1 } else { 0 };
-        $material.1.colors[0] = $colors.color_start.into();
-        $material.1.colors[1] = $colors.color_middle.into();
-        $material.1.colors[2] = $colors.color_end.into();
+        $material.1.colors[0] = Vec4::new(
+            $colors.color_start.r(),
+            $colors.color_start.g(),
+            $colors.color_start.b(),
+            $colors.color_start.a(),
+        );
+        $material.1.colors[1] = Vec4::new(
+            $colors.color_middle.r(),
+            $colors.color_middle.g(),
+            $colors.color_middle.b(),
+            $colors.color_middle.a(),
+        );
+        $material.1.colors[2] = Vec4::new(
+            $colors.color_end.r(),
+            $colors.color_end.g(),
+            $colors.color_end.b(),
+            $colors.color_end.a(),
+        );
     };
 }
 
@@ -138,9 +153,24 @@ fn uniform_update_ui_system(
             ui.checkbox(&mut colors.monochrome, "");
         });
 
-        let mut color_start_arr = colors.color_start.into();
-        let mut color_middle_arr = colors.color_middle.into();
-        let mut color_end_arr = colors.color_end.into();
+        let mut color_start_arr = [
+            colors.color_start.r(),
+            colors.color_start.g(),
+            colors.color_start.b(),
+            colors.color_start.a(),
+        ];
+        let mut color_middle_arr = [
+            colors.color_middle.r(),
+            colors.color_middle.g(),
+            colors.color_middle.b(),
+            colors.color_middle.a(),
+        ];
+        let mut color_end_arr = [
+            colors.color_end.r(),
+            colors.color_end.g(),
+            colors.color_end.b(),
+            colors.color_end.a(),
+        ];
 
         ui.horizontal(|ui| {
             ui.label("Color Start:");
@@ -148,7 +178,12 @@ fn uniform_update_ui_system(
                 .color_edit_button_rgba_unmultiplied(&mut color_start_arr)
                 .changed()
             {
-                colors.color_start = Color::from(color_start_arr);
+                colors.color_start = Color::rgba(
+                    color_start_arr[0],
+                    color_start_arr[1],
+                    color_start_arr[2],
+                    color_start_arr[3],
+                );
             }
         });
 
@@ -158,7 +193,12 @@ fn uniform_update_ui_system(
                 .color_edit_button_rgba_unmultiplied(&mut color_middle_arr)
                 .changed()
             {
-                colors.color_middle = Color::from(color_middle_arr);
+                colors.color_middle = Color::rgba(
+                    color_middle_arr[0],
+                    color_middle_arr[1],
+                    color_middle_arr[2],
+                    color_middle_arr[3],
+                );
             }
         });
 
@@ -168,7 +208,12 @@ fn uniform_update_ui_system(
                 .color_edit_button_rgba_premultiplied(&mut color_end_arr)
                 .changed()
             {
-                colors.color_end = Color::from(color_end_arr);
+                colors.color_end = Color::rgba(
+                    color_end_arr[0],
+                    color_end_arr[1],
+                    color_end_arr[2],
+                    color_end_arr[3],
+                );
             }
         });
 

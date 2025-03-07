@@ -1,38 +1,17 @@
-@group(1) @binding(0)
+@group(2) @binding(0)
 var<uniform> normalized_data: array<vec4<f32>, 16>;
 
-@group(1) @binding(1)
+@group(2) @binding(1)
 var<uniform> viewport_width: f32;
-@group(1) @binding(2)
+
+@group(2) @binding(2)
 var<uniform> viewport_height: f32;
 
-@group(1) @binding(4)
+@group(2) @binding(3)
 var<uniform> monochrome: u32;
 
-@group(1) @binding(5)
+@group(2) @binding(4)
 var<uniform> colors: array<vec4<f32>, 4>;
-
-
-
-struct Globals {
-    // The time since startup in seconds
-    // Wraps to 0 after 1 hour.
-    time: f32,
-    // The delta time since the previous frame in seconds
-    delta_time: f32,
-    // Frame count since the start of the app.
-    // It wraps to zero when it reaches the maximum value of a u32.
-    frame_count: u32,
-#ifdef SIXTEEN_BYTE_ALIGNMENT
-    // WebGL2 structs must be 16 byte aligned.
-    _wasm_padding: f32
-#endif
-}
-
-@group(0) @binding(1)
-var<uniform> globals: Globals;
-
-
 
 fn value_to_monochrome(value: f32) -> vec4<f32> {
     // Define a grayscale value by setting all color components to the value
@@ -44,6 +23,7 @@ fn value_to_monochrome(value: f32) -> vec4<f32> {
     // Return the color with full opacity
     return color;
 }
+
 fn value_to_color(value: f32) -> vec4<f32> {
     // Define start, middle, and end colors for the gradient
     let start_color = vec4<f32>(colors[0].x, colors[0].y, colors[0].z, colors[0].w); // Blue
@@ -63,10 +43,6 @@ fn value_to_color(value: f32) -> vec4<f32> {
     // Return the color with full opacity
     return color;
 }
-
-
-
-
 
 @fragment
 fn fragment(
