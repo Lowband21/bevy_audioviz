@@ -34,11 +34,11 @@ const MINOR_GRID_INTENSITY: f32 = 0.0;  // Intensity of minor grid lines - set t
 
 // Dot grid parameters
 const DOT_SIZE: f32 = 0.003;            // Size of dots (smaller value = smaller dots)
-const DOT_FALLOFF: f32 = 1.0;          // Sharpness of dot edges (0.0-1.0, lower = smoother)
+const DOT_FALLOFF: f32 = 0.5;          // Sharpness of dot edges (0.0-1.0, lower = smoother)
 const VERTICAL_GRID_COUNT: f32 = 32.0;  // Number of vertical grid divisions
 const HORIZONTAL_GRID_COUNT: f32 = 16.0; // Number of horizontal grid divisions
 const AUDIO_BAND_SPACING: f32 = 2.0;  // Sample every Nth audio band
-const DOT_BRIGHTNESS: f32 = 1.5;       // Brightness multiplier for dots
+const DOT_BRIGHTNESS: f32 = 1.0;       // Brightness multiplier for dots
 
 // Deformation parameters
 const DEFORM_STRENGTH: f32 = 0.8;       // Overall deformation strength (reduced for stability)
@@ -164,7 +164,7 @@ fn transform_coordinate_space(uv: vec2<f32>, top_strand: f32, bottom_strand: f32
 // Create a dot-based grid with the transformed coordinates
 fn create_deformed_grid(uv: vec2<f32>, top_strand: f32, bottom_strand: f32, audio_value: f32) -> vec4<f32> {
     // Background color
-    let background_color = vec3<f32>(0.03, 0.08, 0.15);
+    let background_color = vec3<f32>(0.00, 0.00, 0.00);
     var final_color = background_color;
     
     // Apply deformation to coordinates
