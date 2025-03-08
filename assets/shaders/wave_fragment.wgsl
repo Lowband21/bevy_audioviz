@@ -28,9 +28,17 @@ const FIXED_TIME_SCALE: f32 = 0.5;
 
 // Grid parameters
 const GRID_CELL_COUNT: f32 = 16.0;      // Number of grid cells
-const GRID_LINE_SOFTNESS: f32 = 0.002;  // Softness of grid lines
-const GRID_OPACITY: f32 = 0.15;         // Base opacity of the grid lines
-const MINOR_GRID_INTENSITY: f32 = 0.3;  // Intensity of minor grid lines
+const GRID_LINE_SOFTNESS: f32 = 0.005;  // Softness of grid lines - increased from 0.002
+const GRID_OPACITY: f32 = 0.18;         // Base opacity of the grid lines - slightly increased
+const MINOR_GRID_INTENSITY: f32 = 0.0;  // Intensity of minor grid lines - set to 0 to remove them
+
+// Dot grid parameters
+const DOT_SIZE: f32 = 0.003;            // Size of dots (smaller value = smaller dots)
+const DOT_FALLOFF: f32 = 1.0;          // Sharpness of dot edges (0.0-1.0, lower = smoother)
+const VERTICAL_GRID_COUNT: f32 = 32.0;  // Number of vertical grid divisions
+const HORIZONTAL_GRID_COUNT: f32 = 16.0; // Number of horizontal grid divisions
+const AUDIO_BAND_SPACING: f32 = 2.0;  // Sample every Nth audio band
+const DOT_BRIGHTNESS: f32 = 1.5;       // Brightness multiplier for dots
 
 // Deformation parameters
 const DEFORM_STRENGTH: f32 = 0.8;       // Overall deformation strength (reduced for stability)
@@ -70,8 +78,8 @@ fn transform_coordinate_space(uv: vec2<f32>, top_strand: f32, bottom_strand: f32
     let dist_to_center = abs(uv.y - center_y);
     
     // Define hard barriers (screen boundaries with small margin)
-    let top_barrier = 0.95;
-    let bottom_barrier = 0.05;
+    let top_barrier = 1.00;
+    let bottom_barrier = 0.00;
     
     // Calculate a gentler repulsion factor - reduced overall strength
     let repulsion_strength = audio_value * DEFORM_STRENGTH * 0.8; // Reduced from 1.8
@@ -153,96 +161,119 @@ fn transform_coordinate_space(uv: vec2<f32>, top_strand: f32, bottom_strand: f32
     return transformed_uv;
 }
 
-// Create a clean grid with the transformed coordinates
+// Create a dot-based grid with the transformed coordinates
 fn create_deformed_grid(uv: vec2<f32>, top_strand: f32, bottom_strand: f32, audio_value: f32) -> vec4<f32> {
-    // Transform the entire coordinate space using our improved function
+    // Background color
+    let background_color = vec3<f32>(0.03, 0.08, 0.15);
+    var final_color = background_color;
+    
+    // Apply deformation to coordinates
     let transformed_uv = transform_coordinate_space(uv, top_strand, bottom_strand, audio_value);
     
-    // Center between strands for void calculation
-    let center_y = (top_strand + bottom_strand) * 0.5;
+    // Audio band setup - to ensure dots align with audio bands
+    let num_audio_bands = 128.0;
+    let audio_band_width = 1.0 / num_audio_bands;
     
-    // Calculate distance to center line between strands
-    let dist_to_center = abs(uv.y - center_y);
+    // Get the center of the waveform
+    let waveform_center = (top_strand + bottom_strand) * 0.5;
     
-    // Create a void zone with reduced size
-    let void_size = max((top_strand - bottom_strand) * 0.7, 0.04 + audio_value * 0.06);
+    // Vertical grid - now centered around the waveform
+    let cell_height = 1.0 / VERTICAL_GRID_COUNT;
     
-    // Generate grid using the transformed coordinates
-    let major_grid_size = GRID_CELL_COUNT;
-    let minor_grid_size = GRID_CELL_COUNT * 4.0;  // 4x density for minor grid
+    // Calculate which audio band this pixel belongs to
+    let band_index = floor(transformed_uv.x * num_audio_bands);
     
-    // Calculate grid line positions
-    let major_grid_x_pos = transformed_uv.x * major_grid_size;
-    let major_grid_y_pos = transformed_uv.y * major_grid_size;
-    let minor_grid_x_pos = transformed_uv.x * minor_grid_size;
-    let minor_grid_y_pos = transformed_uv.y * minor_grid_size;
+    // Only draw dots for certain audio bands (for sparser grid)
+    // WGSL requires integer modulo, so we convert to int first
+    let band_index_i = i32(band_index);
+    let spacing_i = i32(AUDIO_BAND_SPACING);
     
-    // Calculate minimum distance to nearest grid line
-    let major_grid_x_dist = min(fract(major_grid_x_pos), 1.0 - fract(major_grid_x_pos));
-    let major_grid_y_dist = min(fract(major_grid_y_pos), 1.0 - fract(major_grid_y_pos));
-    let minor_grid_x_dist = min(fract(minor_grid_x_pos), 1.0 - fract(minor_grid_x_pos));
-    let minor_grid_y_dist = min(fract(minor_grid_y_pos), 1.0 - fract(minor_grid_y_pos));
+    // Number of horizontal lines to draw (must be odd to have one at center)
+    let num_lines = 7; // Total number of horizontal lines
+    let half_lines = num_lines / 2; // Lines on each side of center
     
-    // Line width parameters - adjusted for cleaner look
-    let base_width_major = 0.015;
-    let base_width_minor = 0.008;
+    // Store grid point positions to reuse for vertical and horizontal lines
+    var grid_points_x: array<f32, 64>; // Max 64 x positions
+    var grid_points_y: array<f32, 64>;  // Max 7 y positions
+    var num_x_points = 0;
     
-    // Calculate line width scaling based on distance from center
-    let center_distance_scale = smoothstep(0.0, 0.5, distance(uv, vec2<f32>(0.5, 0.5)));
-    let line_width_major = base_width_major * (1.0 - center_distance_scale * 0.2);
-    let line_width_minor = base_width_minor * (1.0 - center_distance_scale * 0.2);
+    // Pre-calculate all y positions
+    for (var i = -half_lines; i <= half_lines; i++) {
+        // Scale determines how far apart the lines are
+        let scale = 0.12; // Adjust this to control vertical spread
+        let grid_center_y = waveform_center + f32(i) * scale;
+        
+        // Skip lines that would be off-screen
+        if (grid_center_y < 0.0 || grid_center_y > 1.0) {
+            continue;
+        }
+        
+        // Store y position
+        grid_points_y[i + half_lines] = grid_center_y;
+    }
     
-    // Calculate AA width
-    let aa_width_major = max(0.001, GRID_LINE_SOFTNESS);
-    let aa_width_minor = max(0.0005, GRID_LINE_SOFTNESS * 0.5);
+    // Store x positions where we'll draw dots (audio bands)
+    for (var b = 0; b < i32(num_audio_bands); b++) {
+        if (b % spacing_i == 0 && num_x_points < 64) {
+            let band_center_x = (f32(b) + 0.5) * audio_band_width;
+            grid_points_x[num_x_points] = band_center_x;
+            num_x_points = num_x_points + 1;
+        }
+    }
     
-    // Calculate grid lines with improved antialiasing
-    let major_x_line = smoothstep(line_width_major, line_width_major - aa_width_major, major_grid_x_dist);
-    let major_y_line = smoothstep(line_width_major, line_width_major - aa_width_major, major_grid_y_dist);
-    let minor_x_line = smoothstep(line_width_minor, line_width_minor - aa_width_minor, minor_grid_x_dist);
-    let minor_y_line = smoothstep(line_width_minor, line_width_minor - aa_width_minor, minor_grid_y_dist);
+    // Draw dots at grid intersections
+    for (var x = 0; x < num_x_points; x++) {
+        let grid_x = grid_points_x[x];
+        
+        for (var i = -half_lines; i <= half_lines; i++) {
+            // Scale determines how far apart the lines are
+            let scale = 0.12; // Adjust this to control vertical spread
+            let grid_y = waveform_center + f32(i) * scale;
+            
+            // Skip lines that would be off-screen
+            if (grid_y < 0.0 || grid_y > 1.0) {
+                continue;
+            }
+            
+            // Calculate distance to this grid point
+            let dist_x = transformed_uv.x - grid_x;
+            let dist_y = transformed_uv.y - grid_y;
+            let dist = sqrt(dist_x * dist_x + dist_y * dist_y);
+            
+            // Draw dot if we're close enough
+            let dot_intensity = smoothstep(DOT_SIZE, DOT_SIZE * (1.0 - DOT_FALLOFF), dist);
+            
+            // Get the audio value for this x position (band)
+            let band_index_at_x = floor(grid_x * num_audio_bands);
+            let band_index_i_at_x = i32(band_index_at_x);
+            var band_audio_value = audio_value;
+            
+            if (band_index_at_x < 64.0) {
+                // Left channel
+                let comp_index = band_index_i_at_x % 4;
+                let array_index = band_index_i_at_x / 4;
+                if (array_index < 16 && comp_index < 4) {
+                    band_audio_value = left_data[array_index][comp_index];
+                }
+            } else {
+                // Right channel
+                let right_index = band_index_at_x - 64.0;
+                let comp_index = i32(right_index) % 4;
+                let array_index = i32(right_index) / 4;
+                if (array_index < 16 && comp_index < 4) {
+                    band_audio_value = right_data[array_index][comp_index];
+                }
+            }
+            
+            // Basic dot color - cyan with audio intensity
+            let dot_color = vec3<f32>(0.2, 0.8, 1.0) * (1.0 + band_audio_value * DOT_BRIGHTNESS);
+            
+            // Apply dot to background
+            final_color = mix(final_color, dot_color, dot_intensity);
+        }
+    }
     
-    // Combine grid lines
-    let major_grid = max(major_x_line, major_y_line);
-    let minor_grid = max(minor_x_line, minor_y_line) * MINOR_GRID_INTENSITY;
-    
-    // Create an even softer void factor
-    let void_factor = smoothstep(void_size * 0.5, void_size * 1.8, dist_to_center);
-    // Higher minimum visibility (50%)
-    let soft_void_factor = mix(0.5, 1.0, void_factor);
-    
-    // Apply gentler audio-reactive grid intensity
-    let grid_intensity = (1.0 + audio_value * 0.1) * soft_void_factor;
-    
-    // Use smoother blending for combined grid
-    let grid = smoothstep(0.0, 1.0, max(major_grid, minor_grid)) * grid_intensity;
-    
-    // Enhanced distance-based effects
-    let center_dist = distance(uv, vec2<f32>(0.5, 0.5));
-    
-    // Create a more pronounced radial fade that enhances the void effect
-    let radial_fade = 1.0 - smoothstep(0.35, 0.85, center_dist);
-    
-    // Improved depth gradient with audio reactivity
-    let depth_gradient = 1.0 - pow(abs(uv.y - 0.5) * 2.0, 2.0) * 0.3;
-    
-    // Audio-reactive color shift with enhanced edge contrast
-    let base_grid_color = vec3<f32>(0.1, 0.2, 0.5);
-    let highlight_color = vec3<f32>(0.2, 0.4, 0.8);
-    
-    // Gentler color mix
-    let color_mix_factor = audio_value * 0.2 * (1.0 - center_distance_scale * 0.5);
-    let grid_color_mix = mix(base_grid_color, highlight_color, color_mix_factor);
-    
-    // Combine gradients with gentler audio reactivity
-    let edge_emphasis = 1.0 + (1.0 - soft_void_factor) * audio_value * 0.15;
-    let combined_gradient = mix(depth_gradient, radial_fade, 0.3) * edge_emphasis;
-    
-    // Calculate final grid color with adjusted opacity
-    let grid_opacity = GRID_OPACITY * 1.3 * soft_void_factor; 
-    let grid_color = grid_color_mix * grid_opacity * combined_gradient * grid;
-    
-    return vec4<f32>(grid_color, 1.0);
+    return vec4<f32>(final_color, 1.0);
 }
 
 fn value_to_monochrome(value: f32) -> vec4<f32> {
