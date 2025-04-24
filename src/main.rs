@@ -61,20 +61,27 @@ fn main() {
     list_available_hosts();
     list_audio_devices();
 
+    let mut default_plugins = DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "Audio Visualization".into(),
+            present_mode: PresentMode::AutoVsync,
+            prevent_default_event_handling: false,
+            window_theme: Some(WindowTheme::Dark),
+            ..default()
+        }),
+        ..default()
+    });
+
+    // Disable asset watcher for release builds
+    if !cfg!(debug_assertions) {
+        default_plugins = default_plugins.set(AssetPlugin {
+            watch_for_changes_override: Some(false), // Explicitly disable watching
+            ..default()
+        });
+    }
+
     App::new()
-        .add_plugins((DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Audio Visualization".into(),
-                present_mode: PresentMode::AutoVsync,
-                prevent_default_event_handling: false,
-                window_theme: Some(WindowTheme::Dark),
-                ..default()
-            }),
-            ..default()
-        }).set(AssetPlugin {
-            watch_for_changes_override: None,
-            ..default()
-        }),))
+        .add_plugins(default_plugins) // Add the potentially modified group
         .add_plugins(EguiPlugin)
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(FrameTimeDiagnosticsPlugin)
