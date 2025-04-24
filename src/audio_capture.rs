@@ -203,7 +203,7 @@ fn set_monitor_for_bevy_audioviz() {
         // Step 2: Parse the output in blocks to find the correct source-output ID
         // Search based on the binary name, which is more stable
         for block in source_outputs.split("\n\n") {
-            if block.contains("application.process.binary = \"bevy_audioviz_bin\"") {
+            if block.contains("bevy_audioviz") {
                 for line in block.lines() {
                     if line.starts_with("Source Output #") {
                         bevy_audioviz_stream_id = line
