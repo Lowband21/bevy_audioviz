@@ -2,6 +2,7 @@ use crate::cfg::MyConfig;
 use crate::CfgResource;
 use bevy::prelude::*;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use std::process::Command;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use std::sync::{
@@ -10,7 +11,6 @@ use std::sync::{
 };
 use std::thread;
 use std::thread::JoinHandle;
-use std::process::Command;
 use std::time::Duration;
 
 use crate::visualization::VisualizationType;
@@ -201,11 +201,17 @@ fn set_monitor_for_bevy_audioviz() {
         let source_outputs = String::from_utf8_lossy(&output.stdout);
 
         // Step 2: Parse the output in blocks to find the correct source-output ID
+        // Search based on the binary name, which is more stable
         for block in source_outputs.split("\n\n") {
-            if block.contains("application.name = \"PipeWire ALSA [bevy_audioviz]\"") {
+            if block.contains("application.process.binary = \"bevy_audioviz_bin\"") {
                 for line in block.lines() {
                     if line.starts_with("Source Output #") {
-                        bevy_audioviz_stream_id = line.split_whitespace().nth(2).unwrap_or("").trim_start_matches('#').to_string();
+                        bevy_audioviz_stream_id = line
+                            .split_whitespace()
+                            .nth(2)
+                            .unwrap_or("")
+                            .trim_start_matches('#')
+                            .to_string();
                         break;
                     }
                 }
@@ -222,7 +228,10 @@ fn set_monitor_for_bevy_audioviz() {
     }
 
     if bevy_audioviz_stream_id.is_empty() {
-        eprintln!("Failed to find bevy_audioviz stream after {} attempts.", attempts);
+        eprintln!(
+            "Failed to find bevy_audioviz stream after {} attempts.",
+            attempts
+        );
         return;
     }
 
@@ -232,7 +241,9 @@ fn set_monitor_for_bevy_audioviz() {
         .output()
         .expect("Failed to execute pactl get-default-sink command");
 
-    let default_sink = String::from_utf8_lossy(&sink_output.stdout).trim().to_string();
+    let default_sink = String::from_utf8_lossy(&sink_output.stdout)
+        .trim()
+        .to_string();
 
     if default_sink.is_empty() {
         eprintln!("Failed to find default sink.");
@@ -248,10 +259,15 @@ fn set_monitor_for_bevy_audioviz() {
         .output()
         .expect("Failed to execute pactl list short sources command");
 
-    let monitor_source = String::from_utf8_lossy(&monitor_source_output.stdout).trim().to_string();
+    let monitor_source = String::from_utf8_lossy(&monitor_source_output.stdout)
+        .trim()
+        .to_string();
 
     if monitor_source.is_empty() {
-        eprintln!("Failed to find monitor source for default sink: {}", default_sink);
+        eprintln!(
+            "Failed to find monitor source for default sink: {}",
+            default_sink
+        );
         return;
     }
 
@@ -261,7 +277,11 @@ fn set_monitor_for_bevy_audioviz() {
         .arg(monitor_source.clone())
         .output()
         .expect("Failed to move bevy_audioviz stream to monitor source");
-    println!("pactl move-source-output {} {}", bevy_audioviz_stream_id, monitor_source.clone());
+    println!(
+        "pactl move-source-output {} {}",
+        bevy_audioviz_stream_id,
+        monitor_source.clone()
+    );
 
     if move_output.status.success() {
         println!("Set bevy_audioviz capture device to: {}", monitor_source);
@@ -272,7 +292,6 @@ fn set_monitor_for_bevy_audioviz() {
         );
     }
 }
-
 
 fn err_fn(err: cpal::StreamError) {
     eprintln!("An error occurred on the audio stream: {}", err);
