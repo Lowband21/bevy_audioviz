@@ -1,3 +1,5 @@
+#import bevy_pbr::forward_io::VertexOutput
+
 @group(2) @binding(0)
 var<uniform> normalized_data: array<vec4<f32>, 16>;
 
@@ -58,12 +60,8 @@ fn value_to_color(value: f32) -> vec4<f32> {
 }
 
 @fragment
-fn fragment(
-    @builtin(position) coord: vec4<f32>,
-    @location(0) world_position: vec4<f32>,
-    @location(1) normals: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-) -> @location(0) vec4<f32> {
+fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
+    let uv = mesh.uv;
 
     // Calculate the aspect ratio
     let aspect_ratio = viewport_height / viewport_width;

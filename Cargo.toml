@@ -6,14 +6,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = {version = "0.13.0", features = ["file_watcher"] }
-bevy_egui = "0.25.0"
+bevy = {version = "0.16.1", features = ["file_watcher"] }
+bevy_egui = "0.34.0"
 confy = "0.6.0"
 #bevy = {git = "https://github.com/bevyengine/bevy.git"}
-cpal = "0.15.2"
+cpal = "0.15.3"
+log = "0.4"
+env_logger = "0.11"
 mpsc = "0.2.3"
 serde = { version = "1.0.195", features = ["derive"] }
-spectrum-analyzer = "1.5.0"
+spectrum-analyzer = "1.7.0"
 
 # Enable max optimizations for dependencies, but not for our code:
 [profile.dev.package."*"]

@@ -1,3 +1,5 @@
+#import bevy_pbr::forward_io::VertexOutput
+
 @group(2) @binding(0)
 var<uniform> normalized_data: array<vec4<f32>, 16>;
 
@@ -24,11 +26,11 @@ fn value_to_monochrome(value: f32) -> vec4<f32> {
     return color;
 }
 
-fn value_to_color(value: f32) -> vec4<f32> {
+fn value_to_color(value: f32, current_colors: array<vec4<f32>, 4>) -> vec4<f32> {
     // Define start, middle, and end colors for the gradient
-    let start_color = vec4<f32>(colors[0].x, colors[0].y, colors[0].z, colors[0].w); // Blue
-    let middle_color = vec4<f32>(colors[1].x, colors[1].y, colors[1].z, colors[1].w); // Green
-    let end_color = vec4<f32>(colors[2].x, colors[2].y, colors[2].z, colors[2].w); // Red
+    let start_color = vec4<f32>(current_colors[0].x, current_colors[0].y, current_colors[0].z, current_colors[0].w); // Blue
+    let middle_color = vec4<f32>(current_colors[1].x, current_colors[1].y, current_colors[1].z, current_colors[1].w); // Green
+    let end_color = vec4<f32>(current_colors[2].x, current_colors[2].y, current_colors[2].z, current_colors[2].w); // Red
 
     // Declare a variable for the color
     var color: vec4<f32>;
@@ -45,13 +47,9 @@ fn value_to_color(value: f32) -> vec4<f32> {
 }
 
 @fragment
-fn fragment(
-    @builtin(position) coord: vec4<f32>,
-    @location(0) world_position: vec4<f32>,
-    @location(1) normals: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-) -> @location(0) vec4<f32> {
-    //return vec4<f32>(uv.x, uv.y, 0.0, 1.0);
+fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
+    let uv = mesh.uv;
+    
     var vec_index = i32(uv.x * 64.0);
     vec_index = clamp(vec_index, 0, 63);
 
@@ -71,28 +69,14 @@ fn fragment(
     if (monochrome == 1u){
         color = value_to_monochrome(audio_value);
     }else{
-        color = value_to_color(audio_value * ((-(uv.y * 0.8) + 1.0) + 0.2));
+        color = value_to_color(audio_value * ((-(uv.y * 0.8) + 1.0) + 0.2), colors);
     }
-
-
-    // Calculate the dynamic bar width based on the audio value
-    let bar_width = mix(0.02, 0.1, audio_value); // Linearly interpolate between min and max widths
-    let half_bar_width = bar_width * 0.5;
-
-    // Calculate the x position relative to the center of the screen
-    let centered_x = uv.x - 0.5;
-
-
-    
-    // Soft edges using smoothstep function
-    //let edge_softness = 0.01; // Edge softness value
-    //let alpha = smoothstep(0.0, edge_softness, bar_height - flipped_y);
-    
-    // Draw the bar with soft edges
+     
     if (flipped_y <= bar_height) {
+        // Inside the bar - show color
         return color;
     } else {
-        // Make this a bright blue color to easily see hot reloading working
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Bright blue background
+        // Above the bar - black background
+        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
     }
 }

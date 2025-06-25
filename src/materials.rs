@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::reflect::TypePath;
 use bevy::render::render_resource::{AsBindGroup, ShaderRef};
-use bevy::sprite::Material2d;
+use bevy::pbr::Material;
 
 use crate::ARRAY_UNIFORM_SIZE;
 
@@ -17,24 +17,18 @@ macro_rules! impl_material_new {
                     viewport_height: height,
                     monochrome: if colors.monochrome { 1 } else { 0 },
                     colors: [
-                        Vec4::new(
-                            colors.color_start.r(),
-                            colors.color_start.g(),
-                            colors.color_start.b(),
-                            colors.color_start.a(),
-                        ),
-                        Vec4::new(
-                            colors.color_middle.r(),
-                            colors.color_middle.g(),
-                            colors.color_middle.b(),
-                            colors.color_middle.a(),
-                        ),
-                        Vec4::new(
-                            colors.color_end.r(),
-                            colors.color_end.g(),
-                            colors.color_end.b(),
-                            colors.color_end.a(),
-                        ),
+                        {
+                            let srgba = colors.color_start.to_srgba();
+                            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+                        },
+                        {
+                            let srgba = colors.color_middle.to_srgba();
+                            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+                        },
+                        {
+                            let srgba = colors.color_end.to_srgba();
+                            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+                        },
                         Vec4::ZERO,
                     ],
                 }
@@ -60,24 +54,18 @@ macro_rules! impl_one_channel_material_new {
                     viewport_height: height,
                     monochrome: if colors.monochrome { 1 } else { 0 },
                     colors: [
-                        Vec4::new(
-                            colors.color_start.r(),
-                            colors.color_start.g(),
-                            colors.color_start.b(),
-                            colors.color_start.a(),
-                        ),
-                        Vec4::new(
-                            colors.color_middle.r(),
-                            colors.color_middle.g(),
-                            colors.color_middle.b(),
-                            colors.color_middle.a(),
-                        ),
-                        Vec4::new(
-                            colors.color_end.r(),
-                            colors.color_end.g(),
-                            colors.color_end.b(),
-                            colors.color_end.a(),
-                        ),
+                        {
+                            let srgba = colors.color_start.to_srgba();
+                            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+                        },
+                        {
+                            let srgba = colors.color_middle.to_srgba();
+                            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+                        },
+                        {
+                            let srgba = colors.color_end.to_srgba();
+                            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+                        },
                         Vec4::ZERO,
                     ],
                 }
@@ -87,21 +75,36 @@ macro_rules! impl_one_channel_material_new {
 }
 
 #[derive(Resource, Default)]
-pub struct BarEntity(pub Option<Entity>);
+pub struct BarEntity {
+    pub entity: Option<Entity>,
+    pub material_handle: Option<Handle<BarMaterial>>,
+}
 
 #[derive(Resource, Default)]
-pub struct StringEntity(pub Option<Entity>);
+pub struct StringEntity {
+    pub entity: Option<Entity>,
+    pub material_handle: Option<Handle<StringMaterial>>,
+}
 
 #[derive(Resource, Default)]
-pub struct CircleSplitEntity(pub Option<Entity>);
+pub struct CircleSplitEntity {
+    pub entity: Option<Entity>,
+    pub material_handle: Option<Handle<CircleSplitMaterial>>,
+}
 
 #[derive(Resource, Default)]
-pub struct WaveEntity(pub Option<Entity>);
+pub struct WaveEntity {
+    pub entity: Option<Entity>,
+    pub material_handle: Option<Handle<WaveMaterial>>,
+}
 
 #[derive(Resource, Default)]
-pub struct PolygonEntity(pub Option<Entity>);
+pub struct PolygonEntity {
+    pub entity: Option<Entity>,
+    pub material_handle: Option<Handle<PolygonMaterial>>,
+}
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct StringMaterial {
     #[uniform(0)]
     pub left_data: [Vec4; ARRAY_UNIFORM_SIZE],
@@ -116,13 +119,13 @@ pub struct StringMaterial {
     #[uniform(5)]
     pub colors: [Vec4; 4],
 }
-impl Material2d for StringMaterial {
+impl Material for StringMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/string_fragment.wgsl".into()
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct CircleSplitMaterial {
     #[uniform(0)]
     pub left_data: [Vec4; ARRAY_UNIFORM_SIZE],
@@ -137,13 +140,13 @@ pub struct CircleSplitMaterial {
     #[uniform(5)]
     pub colors: [Vec4; 4],
 }
-impl Material2d for CircleSplitMaterial {
+impl Material for CircleSplitMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/circle_split_fragment.wgsl".into()
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct WaveMaterial {
     #[uniform(0)]
     pub left_data: [Vec4; ARRAY_UNIFORM_SIZE],
@@ -158,13 +161,13 @@ pub struct WaveMaterial {
     #[uniform(5)]
     pub colors: [Vec4; 4],
 }
-impl Material2d for WaveMaterial {
+impl Material for WaveMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/wave_fragment.wgsl".into()
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct PolygonMaterial {
     #[uniform(0)]
     pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE],
@@ -177,13 +180,13 @@ pub struct PolygonMaterial {
     #[uniform(4)]
     pub colors: [Vec4; 4],
 }
-impl Material2d for PolygonMaterial {
+impl Material for PolygonMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/polygon_fragment.wgsl".into()
     }
 }
 
-#[derive(Component, Debug, Clone, AsBindGroup, TypePath, Asset)]
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct BarMaterial {
     #[uniform(0)]
     pub normalized_data: [Vec4; ARRAY_UNIFORM_SIZE],
@@ -196,7 +199,7 @@ pub struct BarMaterial {
     #[uniform(4)]
     pub colors: [Vec4; 4],
 }
-impl Material2d for BarMaterial {
+impl Material for BarMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/bar_fragment.wgsl".into()
     }

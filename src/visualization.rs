@@ -1,7 +1,8 @@
 use bevy::prelude::*;
-use bevy::sprite::{MaterialMesh2dBundle, Mesh2dHandle};
+// Material2dPlugin no longer needed for 3D
 use bevy::window::{PrimaryWindow, WindowResized};
 use bevy::math::primitives::Rectangle;
+use log::{debug, error, info, warn};
 
 use crate::audio_capture::AudioThreadFlag;
 use crate::audio_capture::{stream_input, DeviceType};
@@ -22,8 +23,7 @@ impl_material_new!(WaveMaterial);
 impl_one_channel_material_new!(BarMaterial);
 impl_one_channel_material_new!(PolygonMaterial);
 
-#[derive(Resource)]
-#[derive(Default)]
+#[derive(Resource, Default, Debug)]
 pub enum VisualizationType {
     #[default]
     Bar,
@@ -100,34 +100,45 @@ pub fn spawn_visualization(
     colors: Res<Colors>,
 ) {
     if visualization_type.is_changed() {
-        println!("Fractal Type Changed");
+        debug!("Visualization type changed to {:?}", *visualization_type);
 
         // Variable setup
         let colors = colors.into_inner();
-        let window = primary_window.single();
+        let Ok(window) = primary_window.single() else {
+            return;
+        };
         let window_size = Vec2::new(window.width(), window.height());
         let polygon_window_size = Vec2::new(window.height(), window.width());
-        let mesh = Mesh::from(Rectangle::new(window_size.x, window_size.y));
+        let mesh = Mesh::from(Rectangle::new(window_size.x, window_size.y)); // Back to window size for proper aspect ratio
         let polygon_mesh = Mesh::from(Rectangle::new(polygon_window_size.x, polygon_window_size.y));
-        let audio_mesh: Mesh2dHandle = Mesh2dHandle(meshes.add(mesh.clone()));
-        let polygon_audio_mesh: Mesh2dHandle = Mesh2dHandle(meshes.add(polygon_mesh.clone()));
+        let audio_mesh_handle = meshes.add(mesh.clone());
+        let polygon_audio_mesh_handle = meshes.add(polygon_mesh.clone());
 
         // Remove the old visualizer entity if it exists
-        if let Some(entity) = bar_entity.0.take() {
+        if let Some(entity) = bar_entity.entity.take() {
             commands.entity(entity).despawn();
         }
-        if let Some(entity) = string_entity.0.take() {
+        bar_entity.material_handle = None;
+        
+        if let Some(entity) = string_entity.entity.take() {
             commands.entity(entity).despawn();
         }
-        if let Some(entity) = circle_split_entity.0.take() {
+        string_entity.material_handle = None;
+        
+        if let Some(entity) = circle_split_entity.entity.take() {
             commands.entity(entity).despawn();
         }
-        if let Some(entity) = polygon_entity.0.take() {
+        circle_split_entity.material_handle = None;
+        
+        if let Some(entity) = polygon_entity.entity.take() {
             commands.entity(entity).despawn();
         }
-        if let Some(entity) = wave_entity.0.take() {
+        polygon_entity.material_handle = None;
+        
+        if let Some(entity) = wave_entity.entity.take() {
             commands.entity(entity).despawn();
         }
+        wave_entity.material_handle = None;
 
         match *visualization_type {
             VisualizationType::Bar => {
@@ -138,16 +149,17 @@ pub fn spawn_visualization(
                     window_size.y,
                     colors
                 );
-                bar_entity.0 = Some(
-                    commands
-                        .spawn(MaterialMesh2dBundle {
-                            mesh: audio_mesh.clone(),
-                            material: bar_material_handle,
-                            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                            ..Default::default()
-                        })
-                        .id(),
-                );
+                
+                let entity_id = commands
+                    .spawn((
+                        Mesh3d(audio_mesh_handle.clone()),
+                        MeshMaterial3d(bar_material_handle.clone()),
+                        Transform::from_xyz(0.0, 0.0, 0.0),
+                    ))
+                    .id();
+                    
+                bar_entity.entity = Some(entity_id);
+                bar_entity.material_handle = Some(bar_material_handle);
             }
             VisualizationType::String => {
                 let string_material_handle = prepare_material!(
@@ -157,16 +169,17 @@ pub fn spawn_visualization(
                     window_size.y,
                     colors
                 );
-                string_entity.0 = Some(
-                    commands
-                        .spawn(MaterialMesh2dBundle {
-                            mesh: audio_mesh.clone(),
-                            material: string_material_handle,
-                            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                            ..Default::default()
-                        })
-                        .id(),
-                );
+                
+                let entity_id = commands
+                    .spawn((
+                        Mesh3d(audio_mesh_handle.clone()),
+                        MeshMaterial3d(string_material_handle.clone()),
+                        Transform::from_xyz(0.0, 0.0, 0.0),
+                    ))
+                    .id();
+                    
+                string_entity.entity = Some(entity_id);
+                string_entity.material_handle = Some(string_material_handle);
             }
             VisualizationType::CircleSplit => {
                 let circle_split_material_handle = prepare_material!(
@@ -176,16 +189,17 @@ pub fn spawn_visualization(
                     window_size.y,
                     colors
                 );
-                circle_split_entity.0 = Some(
-                    commands
-                        .spawn(MaterialMesh2dBundle {
-                            mesh: audio_mesh.clone(),
-                            material: circle_split_material_handle,
-                            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                            ..Default::default()
-                        })
-                        .id(),
-                );
+                
+                let entity_id = commands
+                    .spawn((
+                        Mesh3d(audio_mesh_handle.clone()),
+                        MeshMaterial3d(circle_split_material_handle.clone()),
+                        Transform::from_xyz(0.0, 0.0, 0.0),
+                    ))
+                    .id();
+                    
+                circle_split_entity.entity = Some(entity_id);
+                circle_split_entity.material_handle = Some(circle_split_material_handle);
             }
             VisualizationType::Polygon => {
                 let polygon_material_handle = prepare_material!(
@@ -195,18 +209,19 @@ pub fn spawn_visualization(
                     polygon_window_size.y,
                     colors
                 );
-                polygon_entity.0 = Some(
-                    commands
-                        .spawn(MaterialMesh2dBundle {
-                            mesh: polygon_audio_mesh.clone(),
-                            material: polygon_material_handle,
-                            transform: Transform::from_rotation(Quat::from_rotation_z(
-                                (90.0_f32).to_radians(),
-                            )),
-                            ..Default::default()
-                        })
-                        .id(),
-                );
+                
+                let entity_id = commands
+                    .spawn((
+                        Mesh3d(polygon_audio_mesh_handle.clone()),
+                        MeshMaterial3d(polygon_material_handle.clone()),
+                        Transform::from_rotation(Quat::from_rotation_z(
+                            (90.0_f32).to_radians(),
+                        )),
+                    ))
+                    .id();
+                    
+                polygon_entity.entity = Some(entity_id);
+                polygon_entity.material_handle = Some(polygon_material_handle);
             }
             VisualizationType::Wave => {
                 let wave_material_handle = prepare_material!(
@@ -216,20 +231,21 @@ pub fn spawn_visualization(
                     window_size.y,
                     colors
                 );
-                wave_entity.0 = Some(
-                    commands
-                        .spawn(MaterialMesh2dBundle {
-                            mesh: audio_mesh.clone(),
-                            material: wave_material_handle,
-                            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                            ..Default::default()
-                        })
-                        .id(),
-                );
+                
+                let entity_id = commands
+                    .spawn((
+                        Mesh3d(audio_mesh_handle.clone()),
+                        MeshMaterial3d(wave_material_handle.clone()),
+                        Transform::from_xyz(0.0, 0.0, 0.0),
+                    ))
+                    .id();
+                    
+                wave_entity.entity = Some(entity_id);
+                wave_entity.material_handle = Some(wave_material_handle);
             }
         }
 
-        println!("Spawned Audio Visualization");
+        info!("Spawned audio visualization");
     }
 }
 
@@ -252,38 +268,47 @@ pub fn window_resized_event(
 ) {
     let colors = colors.into_inner();
     for event in events.read() {
-        println!("Updating Window Size");
+        debug!("Updating window size");
 
-        // Create meshes for the new window size
+        // Create meshes with proper window dimensions for aspect ratio
         let mesh_handle = meshes.add(Mesh::from(Rectangle::new(event.width, event.height)));
         let polygon_mesh_handle = meshes.add(Mesh::from(Rectangle::new(event.height, event.width)));
 
         // First, despawn all existing entities if they exist
-        if let Some(entity) = bar_entity.0.take() {
-            if commands.get_entity(entity).is_some() {
+        if let Some(entity) = bar_entity.entity.take() {
+            if commands.get_entity(entity).is_ok() {
                 commands.entity(entity).despawn();
             }
         }
-        if let Some(entity) = string_entity.0.take() {
-            if commands.get_entity(entity).is_some() {
+        bar_entity.material_handle = None;
+        
+        if let Some(entity) = string_entity.entity.take() {
+            if commands.get_entity(entity).is_ok() {
                 commands.entity(entity).despawn();
             }
         }
-        if let Some(entity) = circle_split_entity.0.take() {
-            if commands.get_entity(entity).is_some() {
+        string_entity.material_handle = None;
+        
+        if let Some(entity) = circle_split_entity.entity.take() {
+            if commands.get_entity(entity).is_ok() {
                 commands.entity(entity).despawn();
             }
         }
-        if let Some(entity) = polygon_entity.0.take() {
-            if commands.get_entity(entity).is_some() {
+        circle_split_entity.material_handle = None;
+        
+        if let Some(entity) = polygon_entity.entity.take() {
+            if commands.get_entity(entity).is_ok() {
                 commands.entity(entity).despawn();
             }
         }
-        if let Some(entity) = wave_entity.0.take() {
-            if commands.get_entity(entity).is_some() {
+        polygon_entity.material_handle = None;
+        
+        if let Some(entity) = wave_entity.entity.take() {
+            if commands.get_entity(entity).is_ok() {
                 commands.entity(entity).despawn();
             }
         }
+        wave_entity.material_handle = None;
 
         // Then spawn the new entity based on the current visualization type
         match *visualization_type {
@@ -296,14 +321,14 @@ pub fn window_resized_event(
                     colors
                 );
                 let new_entity = commands
-                    .spawn(MaterialMesh2dBundle {
-                        mesh: Mesh2dHandle(mesh_handle),
-                        material: bar_material_handle,
-                        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                        ..Default::default()
-                    })
+                    .spawn((
+                        Mesh3d(mesh_handle),
+                        MeshMaterial3d(bar_material_handle.clone()),
+                        Transform::from_xyz(0.0, 0.0, 0.0),
+                    ))
                     .id();
-                bar_entity.0 = Some(new_entity);
+                bar_entity.entity = Some(new_entity);
+                bar_entity.material_handle = Some(bar_material_handle);
             }
             VisualizationType::String => {
                 let string_material_handle = prepare_material!(
@@ -314,14 +339,14 @@ pub fn window_resized_event(
                     colors
                 );
                 let new_entity = commands
-                    .spawn(MaterialMesh2dBundle {
-                        mesh: Mesh2dHandle(mesh_handle),
-                        material: string_material_handle,
-                        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                        ..Default::default()
-                    })
+                    .spawn((
+                        Mesh3d(mesh_handle),
+                        MeshMaterial3d(string_material_handle.clone()),
+                        Transform::from_xyz(0.0, 0.0, 0.0),
+                    ))
                     .id();
-                string_entity.0 = Some(new_entity);
+                string_entity.entity = Some(new_entity);
+                string_entity.material_handle = Some(string_material_handle);
             }
             VisualizationType::CircleSplit => {
                 let circle_split_material_handle = prepare_material!(
@@ -332,14 +357,14 @@ pub fn window_resized_event(
                     colors
                 );
                 let new_entity = commands
-                    .spawn(MaterialMesh2dBundle {
-                        mesh: Mesh2dHandle(mesh_handle),
-                        material: circle_split_material_handle,
-                        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                        ..Default::default()
-                    })
+                    .spawn((
+                        Mesh3d(mesh_handle),
+                        MeshMaterial3d(circle_split_material_handle.clone()),
+                        Transform::from_xyz(0.0, 0.0, 0.0),
+                    ))
                     .id();
-                circle_split_entity.0 = Some(new_entity);
+                circle_split_entity.entity = Some(new_entity);
+                circle_split_entity.material_handle = Some(circle_split_material_handle);
             }
             VisualizationType::Polygon => {
                 let polygon_material_handle = prepare_material!(
@@ -350,16 +375,16 @@ pub fn window_resized_event(
                     colors
                 );
                 let new_entity = commands
-                    .spawn(MaterialMesh2dBundle {
-                        mesh: Mesh2dHandle(polygon_mesh_handle),
-                        material: polygon_material_handle,
-                        transform: Transform::from_rotation(Quat::from_rotation_z(
+                    .spawn((
+                        Mesh3d(polygon_mesh_handle),
+                        MeshMaterial3d(polygon_material_handle.clone()),
+                        Transform::from_rotation(Quat::from_rotation_z(
                             (90.0_f32).to_radians(),
                         )),
-                        ..Default::default()
-                    })
+                    ))
                     .id();
-                polygon_entity.0 = Some(new_entity);
+                polygon_entity.entity = Some(new_entity);
+                polygon_entity.material_handle = Some(polygon_material_handle);
             }
             VisualizationType::Wave => {
                 let wave_material_handle = prepare_material!(
@@ -370,14 +395,14 @@ pub fn window_resized_event(
                     colors
                 );
                 let new_entity = commands
-                    .spawn(MaterialMesh2dBundle {
-                        mesh: Mesh2dHandle(mesh_handle),
-                        material: wave_material_handle,
-                        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                        ..Default::default()
-                    })
+                    .spawn((
+                        Mesh3d(mesh_handle),
+                        MeshMaterial3d(wave_material_handle.clone()),
+                        Transform::from_xyz(0.0, 0.0, 0.0),
+                    ))
                     .id();
-                wave_entity.0 = Some(new_entity);
+                wave_entity.entity = Some(new_entity);
+                wave_entity.material_handle = Some(wave_material_handle);
             }
         }
     }

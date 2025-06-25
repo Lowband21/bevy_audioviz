@@ -15,24 +15,18 @@ use bevy_egui::{egui, EguiContexts};
 macro_rules! update_material {
     ($material:expr, $colors:expr) => {
         $material.1.monochrome = if $colors.monochrome { 1 } else { 0 };
-        $material.1.colors[0] = Vec4::new(
-            $colors.color_start.r(),
-            $colors.color_start.g(),
-            $colors.color_start.b(),
-            $colors.color_start.a(),
-        );
-        $material.1.colors[1] = Vec4::new(
-            $colors.color_middle.r(),
-            $colors.color_middle.g(),
-            $colors.color_middle.b(),
-            $colors.color_middle.a(),
-        );
-        $material.1.colors[2] = Vec4::new(
-            $colors.color_end.r(),
-            $colors.color_end.g(),
-            $colors.color_end.b(),
-            $colors.color_end.a(),
-        );
+        $material.1.colors[0] = {
+            let srgba = $colors.color_start.to_srgba();
+            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+        };
+        $material.1.colors[1] = {
+            let srgba = $colors.color_middle.to_srgba();
+            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+        };
+        $material.1.colors[2] = {
+            let srgba = $colors.color_end.to_srgba();
+            Vec4::new(srgba.red, srgba.green, srgba.blue, srgba.alpha)
+        };
     };
 }
 
@@ -57,24 +51,9 @@ impl Default for Colors {
     fn default() -> Self {
         Colors {
             monochrome: true,
-            color_start: Color::Rgba {
-                red: 0.0,
-                green: 0.0,
-                blue: 6.66,
-                alpha: 0.4,
-            },
-            color_middle: Color::Rgba {
-                red: 0.0,
-                green: 0.12,
-                blue: 0.49,
-                alpha: 0.2,
-            },
-            color_end: Color::Rgba {
-                red: 0.29,
-                green: 0.0,
-                blue: 1.0,
-                alpha: 1.0,
-            },
+            color_start: Color::srgba(0.0, 0.0, 6.66, 0.4),
+            color_middle: Color::srgba(0.0, 0.12, 0.49, 0.2),
+            color_end: Color::srgba(0.29, 0.0, 1.0, 1.0),
         }
     }
 }
@@ -153,24 +132,18 @@ fn uniform_update_ui_system(
             ui.checkbox(&mut colors.monochrome, "");
         });
 
-        let mut color_start_arr = [
-            colors.color_start.r(),
-            colors.color_start.g(),
-            colors.color_start.b(),
-            colors.color_start.a(),
-        ];
-        let mut color_middle_arr = [
-            colors.color_middle.r(),
-            colors.color_middle.g(),
-            colors.color_middle.b(),
-            colors.color_middle.a(),
-        ];
-        let mut color_end_arr = [
-            colors.color_end.r(),
-            colors.color_end.g(),
-            colors.color_end.b(),
-            colors.color_end.a(),
-        ];
+        let mut color_start_arr = {
+            let srgba = colors.color_start.to_srgba();
+            [srgba.red, srgba.green, srgba.blue, srgba.alpha]
+        };
+        let mut color_middle_arr = {
+            let srgba = colors.color_middle.to_srgba();
+            [srgba.red, srgba.green, srgba.blue, srgba.alpha]
+        };
+        let mut color_end_arr = {
+            let srgba = colors.color_end.to_srgba();
+            [srgba.red, srgba.green, srgba.blue, srgba.alpha]
+        };
 
         ui.horizontal(|ui| {
             ui.label("Color Start:");
@@ -178,7 +151,7 @@ fn uniform_update_ui_system(
                 .color_edit_button_rgba_unmultiplied(&mut color_start_arr)
                 .changed()
             {
-                colors.color_start = Color::rgba(
+                colors.color_start = Color::srgba(
                     color_start_arr[0],
                     color_start_arr[1],
                     color_start_arr[2],
@@ -193,7 +166,7 @@ fn uniform_update_ui_system(
                 .color_edit_button_rgba_unmultiplied(&mut color_middle_arr)
                 .changed()
             {
-                colors.color_middle = Color::rgba(
+                colors.color_middle = Color::srgba(
                     color_middle_arr[0],
                     color_middle_arr[1],
                     color_middle_arr[2],
@@ -208,7 +181,7 @@ fn uniform_update_ui_system(
                 .color_edit_button_rgba_premultiplied(&mut color_end_arr)
                 .changed()
             {
-                colors.color_end = Color::rgba(
+                colors.color_end = Color::srgba(
                     color_end_arr[0],
                     color_end_arr[1],
                     color_end_arr[2],

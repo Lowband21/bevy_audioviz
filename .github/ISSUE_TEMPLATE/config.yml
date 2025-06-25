@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Discussions
+    url: https://github.com/Lowband21/bevy_audioviz/discussions
+    about: Please ask questions and discuss ideas here
+  - name: Bevy Community
+    url: https://bevyengine.org/community/
+    about: Get help with general Bevy questions

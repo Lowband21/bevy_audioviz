@@ -1,0 +1,24 @@
+# Clippy configuration
+# Maximum number of lines a function can have
+too-many-lines-threshold = 150
+
+# Maximum number of arguments a function can have
+too-many-arguments-threshold = 8
+
+# Maximum complexity allowed for a function
+cognitive-complexity-threshold = 30
+
+# Maximum number of single char bindings a scope can have
+single-char-binding-names-threshold = 5
+
+# Minimum number of enum variants to trigger the lint
+enum-variant-name-threshold = 3
+
+# Maximum number of bounds a generic type can have
+type-complexity-threshold = 250
+
+# The maximum allowed size for arrays on the stack
+trivial-copy-size-limit = 128
+
+# Files to ignore
+ignore = ["target/**/*"]

@@ -2,6 +2,7 @@ use crate::cfg::MyConfig;
 use crate::CfgResource;
 use bevy::prelude::*;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use log::{debug, error, info, warn};
 use std::process::Command;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
@@ -80,14 +81,14 @@ pub fn stream_input(
         };
 
         let mut device = host.default_output_device().unwrap();
-        println!("Placeholder");
+        debug!("Using default output device as fallback");
 
         if let Some(configured_device) = config.device.clone() {
             for (_device_index, dev) in devices.enumerate() {
                 //println!("Device {}: {}", device_index, dev.name().unwrap());
                 if dev.name().unwrap() == configured_device {
                     device = dev;
-                    println!("Selected Device: {}", device.name().unwrap());
+                    info!("Selected Device: {}", device.name().unwrap());
                 }
             }
         }
@@ -106,7 +107,7 @@ pub fn stream_input(
         let supported_buffer_size: cpal::SupportedBufferSize =
             config_clone.buffer_size().to_owned();
         let channels = config_clone.channels();
-        println!("Config used has {} channels", channels);
+        debug!("Config used has {} channels", channels);
 
         let stream = device
             .build_input_stream(
@@ -277,14 +278,14 @@ fn set_monitor_for_bevy_audioviz() {
         .arg(monitor_source.clone())
         .output()
         .expect("Failed to move bevy_audioviz stream to monitor source");
-    println!(
+    debug!(
         "pactl move-source-output {} {}",
         bevy_audioviz_stream_id,
         monitor_source.clone()
     );
 
     if move_output.status.success() {
-        println!("Set bevy_audioviz capture device to: {}", monitor_source);
+        info!("Set bevy_audioviz capture device to: {}", monitor_source);
     } else {
         eprintln!(
             "Failed to move source output: {}",
@@ -315,7 +316,7 @@ pub fn audio_capture_startup_system(
         if let Some(mut receiver) = audio_receiver_res {
             if let Some(thread_handle) = receiver.thread_handle.take() {
                 match thread_handle.join() {
-                    Ok(_) => println!("Audio thread joined successfully."),
+                    Ok(_) => info!("Audio thread joined successfully."),
                     Err(e) => eprintln!("Failed to join audio thread: {:?}", e),
                 }
             }

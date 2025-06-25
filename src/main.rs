@@ -1,10 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
-use bevy::prelude::*;
-use bevy::sprite::Material2dPlugin;
-use bevy::window::{PresentMode, WindowTheme};
+// Removed unused imports
 use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
+use bevy::prelude::*;
+use bevy::pbr::MaterialPlugin;
+use bevy::core_pipeline::core_3d::Camera3d;
+use bevy::window::{PresentMode, WindowTheme};
+use log::{debug, error, info, warn};
 
 use bevy_egui::EguiPlugin;
 
@@ -53,11 +56,11 @@ fn main() {
         Ok(config) => config,
         Err(_) => MyConfig::default(),
     };
-    println!(
+    info!(
         "Config file location: {:#?}",
         confy::get_configuration_file_path("bevy_audioviz", "config").unwrap()
     );
-    println!("{:?}", config);
+    debug!("Loaded config: {:?}", config);
     list_available_hosts();
     list_audio_devices();
 
@@ -82,9 +85,11 @@ fn main() {
 
     App::new()
         .add_plugins(default_plugins) // Add the potentially modified group
-        .add_plugins(EguiPlugin)
+        .add_plugins(EguiPlugin {
+            enable_multipass_for_primary_context: false,
+        })
         .add_plugins(LogDiagnosticsPlugin::default())
-        .add_plugins(FrameTimeDiagnosticsPlugin)
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_plugins(UIPlugin)
         .insert_resource(AudioVisualizerState::new(NUM_BUCKETS))
         .insert_resource(CfgResource(config))
@@ -93,58 +98,77 @@ fn main() {
         .init_resource::<AudioReceiver>()
         .init_resource::<VisualizationType>()
         .add_systems(Startup, setup)
-        .configure_sets(Update, (
-            AudioVizSystem::Audio,
-            AudioVizSystem::Visualization,
-            AudioVizSystem::Input,
-        ))
-        .add_systems(Update, (
-            audio_capture_startup_system,
-            audio_event_system
-        ).in_set(AudioVizSystem::Audio))
-        .add_systems(Update, (
-            spawn_visualization,
-            visualization_toggle_system,
-            window_resized_event
-        ).in_set(AudioVizSystem::Visualization))
-        .add_systems(Update, (
-            toggle_vsync,
-            toggle_gui
-        ).in_set(AudioVizSystem::Input))
+        .configure_sets(
+            Update,
+            (
+                AudioVizSystem::Audio,
+                AudioVizSystem::Visualization,
+                AudioVizSystem::Input,
+            ),
+        )
+        .add_systems(
+            Update,
+            (audio_capture_startup_system, audio_event_system).in_set(AudioVizSystem::Audio),
+        )
+        .add_systems(
+            Update,
+            (
+                spawn_visualization,
+                visualization_toggle_system,
+                window_resized_event,
+            )
+                .in_set(AudioVizSystem::Visualization),
+        )
+        .add_systems(
+            Update,
+            (toggle_vsync, toggle_gui).in_set(AudioVizSystem::Input),
+        )
         .init_resource::<BarEntity>()
         .init_resource::<StringEntity>()
         .init_resource::<CircleSplitEntity>()
         .init_resource::<PolygonEntity>()
         .init_resource::<WaveEntity>()
-        .add_plugins(Material2dPlugin::<BarMaterial>::default())
-        .add_plugins(Material2dPlugin::<StringMaterial>::default())
-        .add_plugins(Material2dPlugin::<CircleSplitMaterial>::default())
-        .add_plugins(Material2dPlugin::<PolygonMaterial>::default())
-        .add_plugins(Material2dPlugin::<WaveMaterial>::default())
+        .add_plugins(MaterialPlugin::<BarMaterial>::default())
+        .add_plugins(MaterialPlugin::<StringMaterial>::default())
+        .add_plugins(MaterialPlugin::<CircleSplitMaterial>::default())
+        .add_plugins(MaterialPlugin::<PolygonMaterial>::default())
+        .add_plugins(MaterialPlugin::<WaveMaterial>::default())
         .run();
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    // Position 3D camera to replicate 2D view with orthographic projection
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(0.0, 0.0, 1.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Projection::Orthographic(OrthographicProjection {
+            scale: 1.0,
+            near: -10.0,  // Reduced near/far range for better depth precision
+            far: 10.0,
+            viewport_origin: Vec2::new(0.5, 0.5),
+            scaling_mode: bevy::render::camera::ScalingMode::WindowSize,
+            area: Rect::new(-1.0, -1.0, 1.0, 1.0),
+        }),
+    ));
 }
 
 fn toggle_vsync(keyboard: Res<ButtonInput<KeyCode>>, mut windows: Query<&mut Window>) {
     if keyboard.just_pressed(KeyCode::KeyV) {
-        let mut window = windows.single_mut();
-
-        window.present_mode = if matches!(window.present_mode, PresentMode::AutoVsync) {
-            PresentMode::AutoNoVsync
-        } else {
-            PresentMode::AutoVsync
-        };
-        info!("PRESENT_MODE: {:?}", window.present_mode);
+        if let Ok(mut window) = windows.single_mut() {
+            window.present_mode = if matches!(window.present_mode, PresentMode::AutoVsync) {
+                PresentMode::AutoNoVsync
+            } else {
+                PresentMode::AutoVsync
+            };
+            info!("PRESENT_MODE: {:?}", window.present_mode);
+        }
     }
 }
 
 fn list_available_hosts() {
-    println!("Available hosts:");
+    info!("Available hosts:");
     for host_id in available_hosts() {
-        println!("{:?}", host_id);
+        info!("{:?}", host_id);
     }
 }
 
@@ -153,14 +177,14 @@ fn list_audio_devices() {
     let input_devices = host.input_devices().unwrap();
     let output_devices = host.output_devices().unwrap();
 
-    println!("Input Devices:");
+    info!("Input Devices:");
     for device in input_devices {
-        println!("{}", device.name().unwrap());
+        info!("{}", device.name().unwrap());
     }
 
-    println!("\nOutput Devices:");
+    info!("Output Devices:");
     for device in output_devices {
-        println!("{}", device.name().unwrap());
+        info!("{}", device.name().unwrap());
     }
 }
 
